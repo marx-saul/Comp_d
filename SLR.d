@@ -1,10 +1,10 @@
-import data;
-import tool;
+//import data;
+//import tool;
 import std.algorithm;
 import std.array;
 import std.stdio;
 import std.typecons;
-
+/+
 struct Item {
 	ulong num; int index;
 }
@@ -169,3 +169,4 @@ LRTable SLRtable(Grammar grammar_) {
 	
 	return result;
 }
++/

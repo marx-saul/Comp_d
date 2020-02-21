@@ -1,8 +1,101 @@
 import data;
-import std.algorithm, std.array, std.container, std.typecons;
+import std.typecons;
+import std.array, std.container;
+import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln;
 
+// the maximum number of the symbol
+@property Symbol maxSymbolNumber(Rule rule) {
+    return max( rule.lhs, rule.rhs.reduce!((a,b) => max(a,b)) );
+}
 
+@property Symbol maxSymbolNumber(Grammar grammar) {
+    return grammar.map!(maxSymbolNumber).reduce!((a,b) => max(a,b));
+}
+
+// all symbols that appear in the grammar
+@property Set!Symbol symbolSet(Grammar grammar) {
+    auto result = new Set!Symbol();
+    foreach(rule; grammar) {
+        result.add(rule.lhs);
+        foreach(sym; rule.rhs) result.add(sym);
+    }
+    return result;
+}
+
+// non-terminal symbols
+@property Set!Symbol nonterminalSet(Grammar grammar) {
+    auto symbol_set = new Set!Symbol();
+    foreach (rule; grammar) symbol_set.add(rule.lhs);
+    return symbol_set;
+}
+
+/+
+@property Symbol[] nonterminalArray(Grammar grammar) {
+    return nonterminalSet(grammar).toList();
+}
++/
+
+// firstTable(sym) = FIRST(sym)
+Set!Symbol[] firstTable(Grammar grammar) {
+    auto sym_num = grammar.maxSymbolNumber;
+    auto symbols = grammar.symbolSet;
+    auto nonterminals = grammar.nonterminalSet;
+    
+    auto result = new Set!(Symbol)[sym_num+1];
+    
+    // if X is a terminal symbol, FIRST(X) = {X}
+    // else, initialize
+    foreach (sym; symbols.toList) {
+        if (sym !in nonterminals)
+            result[sym] = new Set!Symbol(sym);
+        else
+            result[sym] = new Set!Symbol;
+    }
+    
+    // if there is a rule X -> ε, add ε to FIRST(X)
+    foreach (rule; grammar) {
+        if ( rule.rhs.length == 0 || rule.rhs.map!(x => x==empty_).reduce!"a&&b"() )
+            result[rule.lhs].add(empty_);
+    }
+    
+    // if there is a rule X -> Y0 Y1 ... Yn, add FIRST(Y1) to FIRST(X)
+    // if ε ∈ FIRST(Y0), ... FIRST(Yk-1), add FIRST(Yk) to FIRST(X) (k = 1, ..., n)
+    // if ε ∈ FIRST(Y0), ... FIRST(Yn), add ε to FIRST(X)
+    // X = rule.lhs, Yk = rule.rhs[k], FIRST(X) = result[X];
+    
+    while (true) {
+        bool nothing_to_add = true;
+        foreach (rule; grammar) {
+            if (rule.rhs.length == 0) continue;
+            
+            auto previous_num = result[rule.lhs].arr.length;
+            
+            // add FIRST(Y0) to FIRST(X)
+            result[rule.lhs] += result[rule.rhs[0]];
+            
+            auto all_empty_flag = empty_ in result[rule.rhs[0]];
+            foreach (k; 1 .. rule.rhs.length) {
+                // if ε ∈ FIRST(Y0), ... FIRST(Yk-1), add FIRST(Yk) to FIRST(X) (k = 1, ..., n)
+                if (all_empty_flag) result[rule.lhs] += result[rule.rhs[k]];
+                else break;
+                all_empty_flag = all_empty_flag && (empty_ in result[rule.rhs[k]]);
+            }
+            if (all_empty_flag) result[rule.lhs].add(empty_);
+            
+            // FIRST(X) was updated
+            if (result[rule.lhs].arr.length > previous_num) nothing_to_add = false;
+        }
+        if (nothing_to_add) break;
+    }
+    
+    return result;
+}
+
+
+
+
+/+
 // Grammar = Rule[]. See module "data"
 
 // concat all the rules
@@ -338,4 +431,6 @@ Symbol[] follow(Grammar grammar, Symbol symbol) {
 	
 	return filter!(x => x != empty_)(result).array();
 }
++/
+
 +/
