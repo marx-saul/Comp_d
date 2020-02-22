@@ -1,0 +1,9 @@
+{
+	"authors": [
+		"marx-saul"
+	],
+	"copyright": "Copyright © 2020, marx-saul",
+	"description": "a LR parser generator written in D that support generating at the compile time.",
+	"license": "MIT License",
+	"name": "comp_d"
+}

@@ -1,5 +1,4 @@
-//import data;
-//import tool;
+module comp_d.LR;
 import std.algorithm;
 import std.array;
 import std.stdio;
