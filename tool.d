@@ -3,54 +3,170 @@ import std.typecons;
 import std.array, std.container;
 import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln;
+import std.conv: to;
 
-// the maximum number of the symbol
-@property Symbol maxSymbolNumber(Rule rule) {
-    return max( rule.lhs, rule.rhs.reduce!((a,b) => max(a,b)) );
-}
-
-@property Symbol maxSymbolNumber(Grammar grammar) {
-    return grammar.map!(maxSymbolNumber).reduce!((a,b) => max(a,b));
-}
-
-// all symbols that appear in the grammar
-@property Set!Symbol symbolSet(Grammar grammar) {
-    auto result = new Set!Symbol();
-    foreach(rule; grammar) {
-        result.add(rule.lhs);
-        foreach(sym; rule.rhs) result.add(sym);
+class GrammarInfo {
+    public Grammar grammar;
+    private int max_symbol_number;
+    private SymbolSet appearing_symbols;
+    private Symbol[]  appearing_symbols_array;
+    private SymbolSet nonterminal_symbols;
+    private Symbol[]  nonterminal_symbols_array;
+    private SymbolSet terminal_symbols;
+    private Symbol[]  terminal_symbols_array;
+    private SymbolSet[] first_table;
+    private SymbolSet[] follow_table;
+    this(Grammar g) {
+        grammar = g;
+        
+        // the maximum of the symbol number in the grammar.
+        max_symbol_number = grammar.map!((Rule rule) => maxSymbolNumber(rule)).reduce!((a,b) => max(a,b));
+        // set of symbols that appear in the grammar
+        appearing_symbols = appearingSymbolSet(grammar);
+        appearing_symbols_array = appearing_symbols.array;
+        // nonterminal symbols
+        nonterminal_symbols = nonterminalSet(grammar);
+        nonterminal_symbols_array = appearing_symbols.array;
+        terminal_symbols = appearing_symbols - nonterminal_symbols;
+        terminal_symbols_array = terminal_symbols.array;
+        // first table
+        first_table = calcFirstTable(grammar, max_symbol_number, appearing_symbols, nonterminal_symbols);
     }
-    return result;
-}
-
-// non-terminal symbols
-@property Set!Symbol nonterminalSet(Grammar grammar) {
-    auto symbol_set = new Set!Symbol();
-    foreach (rule; grammar) symbol_set.add(rule.lhs);
-    return symbol_set;
-}
-
-/+
-@property Symbol[] nonterminalArray(Grammar grammar) {
-    return nonterminalSet(grammar).toList();
-}
-+/
-
-// firstTable(sym) = FIRST(sym)
+    
+    private Symbol maxSymbolNumber(Rule rule) {
+        return max( rule.lhs, rule.rhs.reduce!((a,b) => max(a,b)) );
+    }
+    
+    // for symbol set
+    private SymbolSet symbolSet(int[] args...) inout {
+        return SymbolSet(max_symbol_number, args);
+    }
+    
+    // nonterminal, appearing
+    private SymbolSet appearingSymbolSet(Grammar grammar) {
+        auto result = symbolSet();
+        foreach (rule; grammar) {
+            result.add(rule.lhs);
+            result.add(rule.rhs);
+        }
+        // these cannot appear
+        if (end_of_file_ in result || virtual in result) {
+            assert(0, "end_of_file_ or virtual cannot be in the grammar.");
+        }
+        result.remove(empty_);
+        return result;
+    }
+    
+    private SymbolSet nonterminalSet(Grammar grammar) {
+        auto result = symbolSet();
+        foreach (rule; grammar)
+            result.add(rule.lhs);
+        return result;
+    }
+    
+    // first set
+    private SymbolSet[] calcFirstTable(Grammar grammar, int max_symbol_number, SymbolSet appearing_symbols, SymbolSet nonterminal_symbols) {
+        auto result = new SymbolSet[max_symbol_number+1];
+        foreach (i; 0 .. max_symbol_number+1) result[i] = symbolSet();
+        
+        // cut and add empty 
+        foreach (ref rule; grammar) {
+            rule.rhs = rule.rhs.filter!(symbol => symbol != empty_).array;
+            //writeln(rule.rhs);
+            if (rule.rhs.empty) result[rule.lhs].add(empty_);
+        }
+        // cut empty generating rules
+        auto grammar2 = grammar.filter!( rule => !rule.rhs.empty );
+        //writeln(grammar2.array);
+        
+        // if X is a terminal symbol, FIRST(X) = {X}
+        foreach (sym; appearing_symbols_array) {
+            if (sym in terminal_symbols) result[sym].add(sym);
+        }
+        
+        // if there is a rule X -> Y0 Y1 ... Yn, add FIRST(Y0) to FIRST(X)
+        // if ε ∈ FIRST(Y0), ... FIRST(Yk-1), add FIRST(Yk) to FIRST(X) (k = 1, ..., n)
+        // if ε ∈ FIRST(Y0), ... FIRST(Yn), add ε to FIRST(X)
+        // X = rule.lhs, Yk = rule.rhs[k], FIRST(X) = result[X];
+        
+        while (true) {
+            bool nothing_to_add = true;
+            
+            foreach (rule; grammar2) {
+                auto previous_num = nothing_to_add ? result[rule.lhs].array.length : 0;
+                
+                // already empty_ is in the rule
+                auto empty_in = empty_ in result[rule.lhs];
+                
+                bool all_empty_flag = true;
+                foreach (k; 0 .. rule.rhs.length) {
+                    // add FIRST(Yk) to FIRST(X)
+                    result[rule.lhs] += result[rule.rhs[k]];
+                    
+                    // if empty_ not in FIRST(Yk)
+                    if (empty_ !in result[rule.rhs[k]]) {
+                        all_empty_flag = false;
+                        break;
+                    }
+                }
+                if (!all_empty_flag && !empty_in) result[rule.lhs].remove(empty_);
+            
+                // FIRST(X) was updated
+                if (nothing_to_add && result[rule.lhs].array.length > previous_num) nothing_to_add = false;
+            }
+            if (nothing_to_add) break;
+        }
+        
+        return result;
+    }
+    
+    // FIRST(Y)
+    public SymbolSet first(Symbol symbol) inout {
+        if (symbol.among!(empty_, end_of_file_, virtual)) return symbolSet(symbol);
+        else return cast(SymbolSet) first_table[symbol];
+    }
+    
+    // FIRST(Y0 Y1 ... Yn)
+    public SymbolSet first(Symbol[] symbols) inout {
+        auto result = symbolSet();
+        if (symbols.length == 0) return result;
+        
+        bool all_empty_flag = true;
+        foreach (k; 0 .. symbols.length) {
+            // add FIRST(Yk) to FIRST(X)
+            result += first(symbols[k]);
+            // if empty_ not in FIRST(Yk)
+            if (empty_ !in first(symbols[k])) {
+                all_empty_flag = false;
+                break;
+            }
+        }
+        if (!all_empty_flag) result.remove(empty_);
+        
+        return result;
+    }
+    
+    public void test() inout {
+        foreach (set; first_table) {
+            writeln(set.array);
+        }
+    }
+    
+    /+
+    // firstTable(sym) = FIRST(sym)
 Set!Symbol[] firstTable(Grammar grammar) {
     auto sym_num = grammar.maxSymbolNumber;
-    auto symbols = grammar.symbolSet;
+    auto symbols = grammar.setOfSymbols;
     auto nonterminals = grammar.nonterminalSet;
     
+    //Set!(Symbol)[] result;
     auto result = new Set!(Symbol)[sym_num+1];
     
     // if X is a terminal symbol, FIRST(X) = {X}
     // else, initialize
-    foreach (sym; symbols.toList) {
+    foreach (sym; symbols) {
         if (sym !in nonterminals)
-            result[sym] = new Set!Symbol(sym);
-        else
-            result[sym] = new Set!Symbol;
+            result[sym].add(sym);
     }
     
     // if there is a rule X -> ε, add ε to FIRST(X)
@@ -71,8 +187,14 @@ Set!Symbol[] firstTable(Grammar grammar) {
             
             auto previous_num = result[rule.lhs].arr.length;
             
+            // CTFE error does not occur
+            //return result;
+            
             // add FIRST(Y0) to FIRST(X)
             result[rule.lhs] += result[rule.rhs[0]];
+            
+            // CTFE error occurs
+            //return result;
             
             auto all_empty_flag = empty_ in result[rule.rhs[0]];
             foreach (k; 1 .. rule.rhs.length) {
@@ -83,6 +205,7 @@ Set!Symbol[] firstTable(Grammar grammar) {
             }
             if (all_empty_flag) result[rule.lhs].add(empty_);
             
+            
             // FIRST(X) was updated
             if (result[rule.lhs].arr.length > previous_num) nothing_to_add = false;
         }
@@ -91,9 +214,199 @@ Set!Symbol[] firstTable(Grammar grammar) {
     
     return result;
 }
+     +/
+}
+
+/****************************
+ * CONSTRUCTOR MUST BE CALLED
+ ***************************/ 
+struct SymbolSet {
+    // data[symbol+2] is true iff symbol is in the set.
+    public bool[] data;
+    private int max_symbol_number;
+    
+    public @property Symbol[] array() inout {
+        Symbol[] result;
+        foreach (i, flag; data) {
+            if (flag) result ~= cast(int)i-special_tokens;
+        }
+        return result;
+    }
+    public @property int cardinal() {
+        int result;
+        foreach(flag; data) if (flag) ++result;
+        return result;
+    }
+    
+    this(int msn, Symbol[] args) {
+        this(msn);
+        add(args);
+    }
+    this(int msn) {
+        int max_symbol_number = msn;
+        data.length = max_symbol_number + special_tokens+1;
+    }
+    
+    public void add(int[] args...) {
+        foreach (arg; args) {
+            if (0 <= arg+special_tokens && arg+special_tokens <= data.length)
+                data[arg+special_tokens] = true;
+            else
+                assert(0, "SymbolSet.add got a parameter out of range.");
+        }
+    }
+    public void remove(int[] args...) {
+        foreach (arg; args) {
+            if (0 <= arg+special_tokens && arg+special_tokens <= data.length)
+                data[arg+special_tokens] = false;
+            else
+                assert(0, "SymbolSet.add got a parameter out of range.");
+        }
+    }
+    
+    // in the operator overloadings, it is assumed that max_symbol_number are equal.
+    
+    // "in" overload (element)
+    public bool opBinaryRight(string op)(Symbol elem)
+        if (op == "in")
+    {
+        return data[elem+special_tokens];
+    }
+    
+    // "in" overload (containment)
+    public bool opBinary(string op)(SymbolSet rhs)
+        if (op == "in")
+    {
+        foreach (i, flag; data) {
+            if (flag && !rhs.data[i]) return false;
+        }
+        return true;
+    }
+    
+    // "==" overload
+    public bool opEquals(SymbolSet rhs) {
+        return (this in rhs) && (rhs in this);
+    }
+    
+    // "+", "-" overload: cup, sub
+    public SymbolSet opBinary(string op)(SymbolSet rhs)
+        if (op == "+" || op == "-")
+    {
+        auto result = SymbolSet(max_symbol_number);
+        result.data = this.data.dup;
+        foreach (i, flag; rhs.data) if (flag) result.data[i] = (op == "+");
+        return result;
+    }
+    
+    public SymbolSet opOpAssign(string op)(SymbolSet rhs) {
+        // operator "+=" overload
+        static if (op == "+" || op == "-") {
+            foreach (i, flag; rhs.data) if (flag) this.data[i] = (op == "+");
+            return this;
+        }
+        else assert(0, op ~ "= for Set is not implemented.");
+    }
+    
+}
 
 
+/+
+// the maximum number of the symbol
+@property Symbol maxSymbolNumber(Rule rule) {
+    return max( rule.lhs, rule.rhs.reduce!((a,b) => max(a,b)) );
+}
 
+@property Symbol maxSymbolNumber(Grammar grammar) {
+    return grammar.map!(maxSymbolNumber).reduce!((a,b) => max(a,b));
+}
+
+// all symbols that appear in the grammar
+@property SymbolSetRBT setOfSymbols(Grammar grammar) {
+    auto result = symbolSetRBT();
+    foreach(rule; grammar) {
+        result.add(rule.lhs);
+        result.add(rule.rhs);
+    }
+    return result;
+}
+
+// non-terminal symbols
+@property SymbolSetRBT nonterminalSet(Grammar grammar) {
+    auto result = symbolSetRBT();
+    foreach (rule; grammar) {
+        result.add(rule.lhs);
+    }
+    return result;
+}
+
+/+
+@property Symbol[] nonterminalArray(Grammar grammar) {
+    return nonterminalSet(grammar).toList();
+}
++/
+
+// firstTable(sym) = FIRST(sym)
+Set!Symbol[] firstTable(Grammar grammar) {
+    auto sym_num = grammar.maxSymbolNumber;
+    auto symbols = grammar.setOfSymbols;
+    auto nonterminals = grammar.nonterminalSet;
+    
+    //Set!(Symbol)[] result;
+    auto result = new Set!(Symbol)[sym_num+1];
+    
+    // if X is a terminal symbol, FIRST(X) = {X}
+    // else, initialize
+    foreach (sym; symbols) {
+        if (sym !in nonterminals)
+            result[sym].add(sym);
+    }
+    
+    // if there is a rule X -> ε, add ε to FIRST(X)
+    foreach (rule; grammar) {
+        if ( rule.rhs.length == 0 || rule.rhs.map!(x => x==empty_).reduce!"a&&b"() )
+            result[rule.lhs].add(empty_);
+    }
+    
+    // if there is a rule X -> Y0 Y1 ... Yn, add FIRST(Y1) to FIRST(X)
+    // if ε ∈ FIRST(Y0), ... FIRST(Yk-1), add FIRST(Yk) to FIRST(X) (k = 1, ..., n)
+    // if ε ∈ FIRST(Y0), ... FIRST(Yn), add ε to FIRST(X)
+    // X = rule.lhs, Yk = rule.rhs[k], FIRST(X) = result[X];
+    
+    while (true) {
+        bool nothing_to_add = true;
+        foreach (rule; grammar) {
+            if (rule.rhs.length == 0) continue;
+            
+            auto previous_num = result[rule.lhs].arr.length;
+            
+            // CTFE error does not occur
+            //return result;
+            
+            // add FIRST(Y0) to FIRST(X)
+            result[rule.lhs] += result[rule.rhs[0]];
+            
+            // CTFE error occurs
+            //return result;
+            
+            auto all_empty_flag = empty_ in result[rule.rhs[0]];
+            foreach (k; 1 .. rule.rhs.length) {
+                // if ε ∈ FIRST(Y0), ... FIRST(Yk-1), add FIRST(Yk) to FIRST(X) (k = 1, ..., n)
+                if (all_empty_flag) result[rule.lhs] += result[rule.rhs[k]];
+                else break;
+                all_empty_flag = all_empty_flag && (empty_ in result[rule.rhs[k]]);
+            }
+            if (all_empty_flag) result[rule.lhs].add(empty_);
+            
+            
+            // FIRST(X) was updated
+            if (result[rule.lhs].arr.length > previous_num) nothing_to_add = false;
+        }
+        if (nothing_to_add) break;
+    }
+    
+    return result;
+}
++/
 
 /+
 // Grammar = Rule[]. See module "data"

@@ -11,54 +11,61 @@ void main() {
 }
 
 unittest {
-    auto set1 = new Set!int();
-    set1.add(12, 11, 18, 19);
-    auto set2 = new Set!int();
-    set2.add(2, 2, 9, 3);
+    enum set1 = SymbolSet(4, [2,3,-1]);
+    SymbolSet Test1() {
+        auto result = SymbolSet(4, [2,3,1]);
+        result.add(-2,-1);
+        return result;
+    }
+    enum set2 = Test1();
+    static assert (1 !in set1);
+    static assert (set1 in set2);
+    enum set3 = SymbolSet(4, [-2, 1]);
+    static assert (set1 + set3 == set2);
     
-    set1 += set2;
-    
-    auto set3 = new Set!int();
-    set3.add(18, 9, 120, 168);
-    
-    set1 -= set3;
-    
-    auto set4 = new Set!int();
-    set4.add(19, 12, 11, 3, 2);
-    
-    assert(set1 in set4);
-    assert(set4 in set1);
-    assert(set1 == set4);
-    assert(set1 != set3);
+    static assert (SymbolSet(4, [-3, -2, -1, 0, 1, 2, 3]) - SymbolSet(4, [-3, -1, 0, 2, 3]) == set3);
 }
 
+
 unittest {
-    assert( maxSymbolNumber(grammar(rule(0, 2, 3), rule(2, 4))) == 4 );
-    assert( equal( nonterminalSet( grammar(rule(0,2,3), rule(2,4)) ).toList, [0, 2] ) );
-    
     enum {
         Expr, Term, Factor,
         digit, add, mul, lPar, rPar
     }
     
-    firstTable( grammar(
+    static const grammar_info = new GrammarInfo(grammar(
         rule(Expr, Expr, add, Term),
         rule(Expr, Term),
         rule(Term, Term, mul, Factor),
         rule(Term, Factor),
         rule(Factor, digit),
         rule(Factor, lPar, Expr, rPar)
-    )).each!( (x) { if (x) writeln(x.toList); else writeln("[]"); } );
-    
-    /+enum first_table =  firstTable( grammar(
-        rule(Expr, Expr, add, Term),
-        rule(Expr, Term),
-        rule(Term, Term, mul, Factor),
-        rule(Term, Factor),
-        rule(Factor, digit),
-        rule(Factor, lPar, Expr, rPar)
-    ));+/
-    
-    //firstTable(grammar(rule(0,2,3), rule(2,4))).each!( (x) { if (x) writeln(x.toList); else writeln("[]"); } );
-    //assert( equal( firstTable(grammar(rule(0,2,3), rule(2,4)) ), [Set!Symbol(4), ] );
+    ));
+    // FIRST(Expr) = FIRST(Term) = FIRST(Factor) = {digit, lPar}
+    grammar_info.test();
+    writeln();
 }
+
+
+unittest {
+    enum {
+        Expr, Expr_, Term, Term_, Factor,
+        digit, add, mul, lPar, rPar
+    }
+    
+    static const grammar_info = new GrammarInfo(grammar(
+        rule(Expr, Term, Expr_),
+        rule(Expr_, add, Term, Expr_),
+        rule(Expr_, empty_),
+        rule(Term, Factor, Term_),
+        rule(Term_, mul, Factor, Term_),
+        rule(Term_, empty_),
+        rule(Factor, digit),
+        rule(Factor, lPar, Expr, rPar)
+    ));
+    
+    grammar_info.test();
+    writeln();
+    writeln(grammar_info.first([Expr_, Term_]).array);
+}
+

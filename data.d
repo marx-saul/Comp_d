@@ -1,6 +1,7 @@
 import std.stdio : writeln;
 import std.meta, std.typecons;
-import std.algorithm;
+import std.algorithm, std.container.rbtree, std.array;
+
 /*
 alias Symbol = int;						// start with 0
 // *** rule[1].length > 0 *** MUST BE SATISFIED
@@ -58,85 +59,6 @@ template    grammar() {
     }
 }
 
-class Set(T) {
-    private bool[T] _arr;
-    public immutable(bool)[T] arr() @property {
-        return cast(immutable(bool)[T]) _arr;
-    }
-    public this(T[] elems...) {
-        add(elems);
-    }
-    
-    public T[] toList() @property {
-        return _arr.keys;
-    }
-    
-    public void add(T[] elems...) {
-        foreach (t; elems) _arr[t] = true;
-    }
-    public void remove(T[] elems...) {
-        foreach (t; elems) _arr.remove(t);
-    }
-    
-    // operator "in" overload (element)
-    public bool opBinaryRight(string op)(T t)
-        if (op == "in")
-    {
-        return (t in _arr) !is null;
-    }
-    
-    // operator "in" overload (containment)
-    public bool opBinary(string op)(Set!T set2)
-        if (op == "in")
-    {
-        foreach (t; _arr.byKey)
-            if (t !in set2) return false;
-        return true;
-    }
-    
-    // operator "==" overload
-    public override bool opEquals(Object o) {
-        auto a = cast(Set!T) o;
-        return ( a in this ) && ( this in a ) ;
-    }
-    
-    // operator "+" overload
-    // cup
-    public Set!T opBinary(string op)(Set!T set2)
-        if (op == "+")
-    {
-        auto result = new Set!T();
-        foreach (t; this._arr.byKey) result.add(t);
-        foreach (t; set2._arr.byKey) result.add(t);
-        return result;
-    }
-    
-    // operator "-" overload
-    // subtract
-    public Set!T opBinary(string op)(Set!T set2)
-        if (op == "-")
-    {
-        auto result = new Set!T();
-        foreach (t; this._arr.byKey) result.add(t);
-        foreach (t; set2._arr.byKey) result.remove(t);
-        return result;
-    }
-    
-    public Set!T opOpAssign(string op)(Set!T set2) {
-        // operator "+=" overload
-        static if (op == "+") {
-            foreach (t; set2._arr.byKey) this.add(t);
-            return this;
-        }
-        // operator "-=" overload
-        else if (op == "-") {
-            foreach (t; set2._arr.byKey) this.remove(t);
-            return this;
-        }
-        else assert(0, op ~ " for Set is not implemented.");
-    }
-    
-}
 
 /+
 template test(Args1...) {
@@ -162,4 +84,5 @@ enum Action : byte { error = 0, accept = 1, shift = 2, reduce = 3, goto_ = 4 }
 
 // empty symbol, end of file symbol (for LRs), virtual (for LALR algorithm)
 enum Symbol empty_ = -1, end_of_file_ = -2, virtual = -3;
+immutable special_tokens = 3;    // empty_, end_of_file, virtual. see data.d
 
