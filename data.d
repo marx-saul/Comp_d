@@ -18,16 +18,20 @@ alias LREntry = Tuple!(Action, ulong);
 alias LRTable = LREntry[][Symbol];
 */
 
+/******************************/
 // Symbol
-//  start symbol is 0.
 alias Symbol = int;
 enum bool isSymbol(T) = is(T == Symbol);
 
+// empty symbol, end of file symbol (for LRs), virtual (for LALR algorithm)
+enum Symbol empty_ = -1, end_of_file_ = -2, virtual = -3;
+immutable special_tokens = 3;    // empty_, end_of_file, virtual. see data.d
+
+/*******************************/
 // Rule
 alias Rule = Tuple!(Symbol, "lhs", Symbol[], "rhs");
 enum bool isRule(T) = is(T == Rule);
 
-// see the example template 'test' below.
 template rule() {
     Rule rule(Args...)(Args symbols) {
         // Args must be the nonempty sequence of Symbol's.
@@ -44,6 +48,7 @@ template rule() {
     }
 }
 
+/*******************************/
 // Grammar
 alias Grammar = Rule[];
 
@@ -59,30 +64,9 @@ template    grammar() {
     }
 }
 
-
-/+
-template test(Args1...) {
-    void test(Args2...)(Args2 args) {
-        import std.stdio : writeln;
-        writeln(typeid(Args1));
-        writeln(typeid(Args2));
-        writeln(args);
-    }
-}
-
-test(9, " qaws ", 3.14);
-// the result is:
-=====
-()
-(int,immutable(char)[],double)
-9 qaws 3.14
-=====
-+/
-
+/*******************************/
 // for LR table
 enum Action : byte { error = 0, accept = 1, shift = 2, reduce = 3, goto_ = 4 }
-
-// empty symbol, end of file symbol (for LRs), virtual (for LALR algorithm)
-enum Symbol empty_ = -1, end_of_file_ = -2, virtual = -3;
-immutable special_tokens = 3;    // empty_, end_of_file, virtual. see data.d
+alias LREntry = Tuple!(Action, ulong);
+alias LRTable = LREntry[][Symbol];
 

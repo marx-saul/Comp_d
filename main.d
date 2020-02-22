@@ -42,8 +42,8 @@ unittest {
         rule(Factor, lPar, Expr, rPar)
     ));
     // FIRST(Expr) = FIRST(Term) = FIRST(Factor) = {digit, lPar}
-    grammar_info.test();
-    writeln();
+    //grammar_info.test();
+    //writeln();
 }
 
 
@@ -65,7 +65,5 @@ unittest {
     ));
     
     grammar_info.test();
-    writeln();
-    writeln(grammar_info.first([Expr_, Term_]).array);
 }
 
