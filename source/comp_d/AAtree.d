@@ -22,12 +22,25 @@ class AATree(T, alias less = (a,b)=>a<b)
     }
     private Node* root;
     
+    this(T[] args...) {
+        insert(args);
+    }
+    
+    T[] array() @property{
+        return array_(root);
+    }
+    
+    T[] array_(Node* node) {
+        if (node == null) return [];
+        return array_(node.left) ~ [node.val] ~ array_(node.right);
+    }
+    
     //   left <- node -                left ->   node
     //   |  |          |       =>        |      |    |
     //   v  v          v                 v      v    v
     //   a  b        right               a      b  right
     private Node* skew(Node* node) inout {
-        if (node == null)              return null;
+        if (node == null)           return null;
         else if (node.left == null) return node;
         else if (node.left.level == node.level) {
             auto L = node.left;
@@ -57,9 +70,30 @@ class AATree(T, alias less = (a,b)=>a<b)
         }
         else return node;
     }
-    this(T[] args...) {
-        
+    
+    private Node* insert(T val, Node* node) {
+        if      (node == null) {
+            auto new_node = new Node();
+            new_node.val = val, new_node.level = 1; 
+            return new_node;
+        }
+        else if (less(val, node.val)) {
+            node.left  = insert(val, node.left);
+        }
+        else if (less(node.val, val)) {
+            node.right = insert(val, node.right);
+        }
+        node = skew (node);
+        node = split(node);
+        return node;
     }
+    
+    public void insert(T[] vals...) {
+        foreach (val; vals)
+            root = insert(val, root);
+    }
+    
+    
     version (unittest) {
         public void test() inout {
             {
@@ -102,8 +136,7 @@ class AATree(T, alias less = (a,b)=>a<b)
 }
 
 unittest {
-    static const aatree = new AATree!int();
+    static const aatree = new AATree!int(3, 9, 4);
     aatree.test();
-    
-    
+    //static assert ( equal(aatree.array, [3, 4, 9]) );
 }
