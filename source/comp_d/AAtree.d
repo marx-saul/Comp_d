@@ -26,11 +26,11 @@ class AATree(T, alias less = (a,b)=>a<b)
         insert(args);
     }
     
-    T[] array() @property{
-        return array_(root);
+    T[] array() @property inout {
+        return array_(cast(inout(Node*)) root);
     }
     
-    T[] array_(Node* node) {
+    T[] array_(inout(Node*) node) inout {
         if (node == null) return [];
         return array_(node.left) ~ [node.val] ~ array_(node.right);
     }
@@ -138,5 +138,5 @@ class AATree(T, alias less = (a,b)=>a<b)
 unittest {
     static const aatree = new AATree!int(3, 9, 4);
     aatree.test();
-    //static assert ( equal(aatree.array, [3, 4, 9]) );
+    static assert ( equal(aatree.array, [3, 4, 9]) );
 }
