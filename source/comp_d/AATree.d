@@ -1,4 +1,4 @@
-module comp_d.AAtree;
+module comp_d.AATree;
 
 import comp_d.tool, comp_d.data;
 import std.typecons;
@@ -26,13 +26,42 @@ class AATree(T, alias less = (a,b)=>a<b)
         insert(args);
     }
     
-    T[] array() @property inout {
+    public T[] array() @property inout {
         return array_(cast(inout(Node*)) root);
     }
-    
-    T[] array_(inout(Node*) node) inout {
+    private T[] array_(inout(Node*) node) inout {
         if (node == null) return [];
         return array_(node.left) ~ [node.val] ~ array_(node.right);
+    }
+    
+    public bool empty() @property inout {
+        return root == null;
+    }
+    public T front() @property inout {
+        return getMinimum(cast(Node*) root).val;
+    }
+    // get the minumum node of the tree with the root 'node'
+    private Node* getMinimum(Node* node) inout {
+        if (node == null) return null;
+        while (node.left) 
+            node = node.left;
+        return node;
+    }
+    
+    private bool hasValue(T val, Node* node) inout {
+        while (true) {
+            // not found
+            if (node == null) return false;
+            // found
+            if (node.val == val) return true;
+            // go left
+            if (less(val, node.val)) node = node.left;
+            // go right
+            if (less(node.val, val)) node = node.right;
+        }
+    }
+    public bool hasValue(T val) inout {
+        return hasValue(val, cast(Node*)root);
     }
     
     //   left <- node -                left ->   node
@@ -70,7 +99,8 @@ class AATree(T, alias less = (a,b)=>a<b)
         }
         else return node;
     }
-    
+    /////////////
+    // insert
     private Node* insert(T val, Node* node) {
         if      (node == null) {
             auto new_node = new Node();
@@ -93,6 +123,72 @@ class AATree(T, alias less = (a,b)=>a<b)
             root = insert(val, root);
     }
     
+    /////////////
+    // remove
+    public Node* remove(T val, Node* node) {
+        if (node == null)
+            return null;
+        else if (less(node.val, val))
+            node.right = remove(val, node.right);
+        else if (less(val, node.val))
+            node.left  = remove(val, node.left);
+        else {
+            // leaf
+            if (node.left == null && node.right == null) return null;
+            else if (node.left == null) {
+                auto R = successor(node);
+                node.right = remove(R.val, node.right);
+                node.val = R.val;
+            }
+            else {
+                auto L = predecessor(node);
+                node.left = remove(L.val, node.left);
+                node.val = L.val;
+            }
+        }
+        // 
+        node = decrease_level(node);
+        node = skew(node);
+        node.right = skew(node.right);
+        if (node.right != null) node.right.right = skew(node.right.right);
+        node = split(node);
+        node.right = split(node.right);
+        return node;
+    }
+    
+    private Node* decrease_level(Node* node) {
+        auto normalize
+           = min( node.left  ? node.left.level  : 0,
+                  node.right ? node.right.level : 0
+             ) + 1;
+        if (normalize < node.level) {
+            node.level = normalize;
+            if (normalize < node.right.level)
+                node.right.level = normalize;
+        }
+        return node;
+    }
+    
+    private Node* predecessor(Node* node) {
+        //if (node == null || node.left == null) return null;
+        node = node.left;
+        while (node.right)
+            node = node.right;
+        return node;
+    }
+    
+    private Node* successor(Node* node) {
+        //if (node == null || node.right == null) return null;
+        node = node.right;
+        while (node.left)
+            node = node.left;
+        return node;
+    }
+    
+    public void remove(T[] vals...) {
+        foreach (val; vals)
+            root = remove(val, root);
+    }
     
     version (unittest) {
         public void test() inout {
@@ -139,4 +235,13 @@ unittest {
     static const aatree = new AATree!int(3, 9, 4);
     aatree.test();
     static assert ( equal(aatree.array, [3, 4, 9]) );
+    static assert ( !aatree.empty );
+    static assert ( aatree.front == 3 );
+    static assert ( aatree.hasValue(9) );
+    
+    auto aatree2 = new AATree!int(3, 9, 4);
+    aatree2.insert(9, -1, 2, 6);
+    aatree2.remove(2, 4);
+    assert ( equal(aatree2.array, [-1, 3, 6, 9]) );
+    assert ( aatree2.hasValue(-1) && !aatree2.hasValue(2) );
 }
