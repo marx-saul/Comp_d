@@ -1,8 +1,16 @@
 module comp_d.SLR;
-import std.algorithm;
-import std.array;
-import std.stdio;
+
+import comp_d.LR0ItemSet, comp_d.tool, comp_d.data;
 import std.typecons;
+import std.array, std.container, std.container.binaryheap;
+import std.algorithm, std.algorithm.comparison;
+import std.stdio: writeln;
+
+LR0ItemSet closure(LR0ItemSet item_set) {
+    
+    return item_set;
+}
+
 /+
 struct Item {
 	ulong num; int index;

@@ -15,13 +15,15 @@ unittest {
     static assert ( !aatree.empty );
     static assert ( aatree.front == 3 );
     static assert ( aatree.hasValue(9) );
+    static assert ( aatree.cardinal == 3 );
     
     // run time check
     auto aatree2 = new AATree!int(3, 9, 4);
     aatree2.insert(9, -1, 2, 6);
-    aatree2.remove(2, 4);
+    aatree2.remove(2, 4, 4, 10);
     assert ( equal(aatree2.array, [-1, 3, 6, 9]) );
     assert ( aatree2.hasValue(-1) && !aatree2.hasValue(2) );
+    assert ( aatree2.cardinal == 4 );
     writeln("## AATree unittest 1");
 }
 
@@ -51,6 +53,11 @@ class AATree(T, alias less = (a,b)=>a<b)
     private inout(T)[] array_(inout(Node*) node) inout {
         if (node == null) return [];
         return array_(node.left) ~ [node.val] ~ array_(node.right);
+    }
+    // array.length
+    private size_t cardinal_;
+    public size_t cardinal() @property inout {
+        return cardinal_;
     }
     
     public bool empty() @property inout {
@@ -125,6 +132,7 @@ class AATree(T, alias less = (a,b)=>a<b)
         if      (node == null) {
             auto new_node = new Node();
             new_node.val = val, new_node.level = 1; 
+            cardinal_++;
             return new_node;
         }
         else if (less(val, node.val)) {
@@ -154,7 +162,10 @@ class AATree(T, alias less = (a,b)=>a<b)
             node.left  = remove(val, node.left);
         else {
             // leaf
-            if (node.left == null && node.right == null) return null;
+            if (node.left == null && node.right == null) {
+                cardinal_--;
+                return null;
+            }
             else if (node.left == null) {
                 auto R = successor(node);
                 node.right = remove(R.val, node.right);

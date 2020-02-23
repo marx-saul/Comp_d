@@ -5,7 +5,6 @@ import std.typecons;
 import std.array, std.container, std.container.binaryheap;
 import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln;
-import std.conv: to;
 
 // num is the index of the rule in the grammar, and the index is the index of the point
 // i : A -> X.YZ is LR0Item(i, 1)
@@ -23,10 +22,9 @@ alias LR0ItemSet = Set!(LR0Item, ItemLess);
 // cardinal and dictionary-order of LR0ItemSet
 // compare (a.array.length, a.array[0], a.array[1], ...) and (b.array.length, b.array[0], b.array[1], ...)
 bool ItemSetLess(inout LR0ItemSet a, inout LR0ItemSet b) {
+    if      (a.cardinal < b.cardinal) return true;
+    else if (a.cardinal > b.cardinal) return false;
     auto aa = a.array, ba = b.array;
-    if      (aa.length < ba.length) return true;
-    else if (aa.length > ba.length) return false;
-    
     foreach (i; 0 .. aa.length) {
         auto a_i = aa[i], b_i = ba[i];
         if      (ItemLess(a_i, b_i)) return true;

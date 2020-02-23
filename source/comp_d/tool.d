@@ -40,6 +40,8 @@ unittest {
     static const first_table  = grammar_info.first_test();
     static const follow_table = grammar_info.follow_test();
     
+    
+    writeln(first_table[Expr].array);
     static assert ( equal(first_table[Expr]  .array, [digit, lPar]) );
     static assert ( equal(first_table[Term]  .array, [digit, lPar]) );
     static assert ( equal(first_table[Factor].array, [digit, lPar]) );
@@ -80,6 +82,7 @@ unittest {
     static assert ( equal(follow_table[Term]  .array, [end_of_file_, add, rPar]) );
     static assert ( equal(follow_table[Term_] .array, [end_of_file_, add, rPar]) );
     static assert ( equal(follow_table[Factor].array, [end_of_file_, add, mul, rPar]) );
+    static assert ( follow_table[Factor].array == 4);
     writeln("## tool unittest 3");
 }
 
@@ -299,10 +302,12 @@ struct SymbolSet {
         }
         return result;
     }
-    public @property ulong cardinal() const {
-        ulong result;
+    private ulong cardinal_;
+    public @property ulong cardinal() /+const+/ {
+        return cardinal_;
+        /+ulong result;
         foreach(flag; data) if (flag) ++result;
-        return result;
+        return result;+/
     }
     
     this(Symbol msn, Symbol[] args) {
@@ -316,16 +321,24 @@ struct SymbolSet {
     
     public void add(Symbol[] args...) {
         foreach (arg; args) {
-            if (0 <= arg+special_tokens && arg+special_tokens <= data.length)
-                data[arg+special_tokens] = true;
+            if (0 <= arg+special_tokens && arg+special_tokens <= data.length) {
+                if (!data[arg+special_tokens]) {
+                    cardinal_++;
+                    data[arg+special_tokens] = true;
+                }
+            }
             else
                 assert(0, "\033[1m\033[32mSymbolSet.add got a parameter out of range.\033[0m");
         }
     }
     public void remove(Symbol[] args...) {
         foreach (arg; args) {
-            if (0 <= arg+special_tokens && arg+special_tokens <= data.length)
-                data[arg+special_tokens] = false;
+            if (0 <= arg+special_tokens && arg+special_tokens <= data.length) {
+                if (data[arg+special_tokens]) {
+                    cardinal_--;
+                    data[arg+special_tokens] = false;
+                }
+            }
             else
                 assert(0, "\033[1m\033[32mSymbolSet.add got a parameter out of range.\033[0m");
         }
@@ -362,6 +375,7 @@ struct SymbolSet {
         auto result = SymbolSet(max_symbol_number);
         result.data = this.data.dup;
         foreach (i, flag; rhs.data) if (flag) result.data[i] = (op == "+");
+        result.cardinal_ = result.array.length;
         return result;
     }
     
@@ -369,6 +383,7 @@ struct SymbolSet {
         // operator "+=" overload
         static if (op == "+" || op == "-") {
             foreach (i, flag; rhs.data) if (flag) this.data[i] = (op == "+");
+            this.cardinal_ = this.array.length;
             return this;
         }
         else assert(0, "\033[1m\033[32m" ~ op ~ "= for Set is not implemented.\033[0m");

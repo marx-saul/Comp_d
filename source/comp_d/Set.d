@@ -67,8 +67,12 @@ class Set(T, alias less = (a,b)=>a<b)
         return aat.front;
     }
     
+    // array, cardinal
     public inout(T)[] array() @property inout {
         return aat.array;
+    }
+    public size_t cardinal() @property inout {
+        return aat.cardinal;
     }
     
     public void add(T[] args...) {
