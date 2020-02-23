@@ -20,7 +20,9 @@ unittest {
     static assert (set1 + set3 == set2);
     
     static assert (SymbolSet(4, [-3, -2, -1, 0, 1, 2, 3]) - SymbolSet(4, [-3, -1, 0, 2, 3]) == set3);
+    writeln("tool unittest 1");
 }
+
 unittest {
     enum : Symbol {
         Expr, Term, Factor,
@@ -45,6 +47,7 @@ unittest {
     static assert ( equal(follow_table[Expr]  .array, [end_of_file_, add, rPar]) );
     static assert ( equal(follow_table[Term]  .array, [end_of_file_, add, mul, rPar]) );
     static assert ( equal(follow_table[Factor].array, [end_of_file_, add, mul, rPar]) );
+    writeln("tool unittest 2");
 }
 unittest {
     enum : Symbol {
@@ -77,9 +80,8 @@ unittest {
     static assert ( equal(follow_table[Term]  .array, [end_of_file_, add, rPar]) );
     static assert ( equal(follow_table[Term_] .array, [end_of_file_, add, rPar]) );
     static assert ( equal(follow_table[Factor].array, [end_of_file_, add, mul, rPar]) );
-    
+    writeln("tool unittest 3");
 }
-
 
 class GrammarInfo {
     public Grammar grammar;

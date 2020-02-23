@@ -3,27 +3,52 @@ module comp_d.Set;
 import comp_d.AATree;
 import std.stdio : writeln;
 import std.meta, std.typecons;
-import std.algorithm, std.container.rbtree, std.array;
+import std.algorithm, std.array;
 
-/*
+// CTFE check
 unittest {
-    auto set1 = AASet(3, 1, 4);
+    static const set1 = new Set!int(3, 1, 4);
+    static const set2 = new Set!int(5, 8, 8, 7);
+    static assert (1 in set1);
+    static assert (9 !in set2);
+    static assert (set1 !in set2);
+    static assert (set1 != set2);
+    static const set3 = set1 + set2;
+    static assert (set3 == new Set!int(3, 5, 1, 7, 8, 4, 7));
+    static assert (set3 - set2 == set1);
+    writeln("Set unittest 1");
+    
+    Set!int test() {
+        auto result = new Set!int();
+        foreach (i; 0 .. 10) {
+            result += new Set!int(i);
+        }
+        return result;
+    }
+    static const set4 = test();
+    static assert (10 !in set4 && 4 in set4);
+    static assert ( equal(set4.array, [0,1,2,3,4,5,6,7,8,9]) );
+}
+
+// run time check
+unittest {
+    auto set1 = new Set!int(3, 1, 4);
     set1.add(1, 99, 999);
     assert ( equal(set1.array, [1, 3, 4, 99, 999]) );
     assert (1 in set1);
     assert (10 !in set1);
     
-    auto set2 = AASet(1, 99, 4);
+    auto set2 = new Set!int(1, 99, 4);
     assert (set2 in set1);
     
-    auto set3 = symbolSetRBT(3, 999);
+    auto set3 = new Set!int(3, 999);
     assert ( (set2 + set3) == set1 );
     
-    auto set4 = symbolSetRBT(-8);
+    auto set4 = new Set!int(-8);
     set4 += set3;
-    assert (set4 == symbolSetRBT(-8, 3, 999));
+    assert (set4 == new Set!int(-8, 3, 999));
+    writeln("Set unittest 2");
 }
-*/
 
 class Set(T, alias less = (a,b)=>a<b)
     if ( is(typeof(less(T.init, T.init))) )
@@ -42,7 +67,7 @@ class Set(T, alias less = (a,b)=>a<b)
         return aat.front;
     }
     
-    public T[] array() @property {
+    public inout(T)[] array() @property inout {
         return aat.array;
     }
     
@@ -55,14 +80,14 @@ class Set(T, alias less = (a,b)=>a<b)
     
     
     // "in" overload (element)
-    public bool opBinaryRight(string op)(T elem)
+    public bool opBinaryRight(string op)(T elem) inout
         if (op == "in")
     {
-        return !rbt.equalRange(elem).empty;
+        return aat.hasValue(elem);
     }
     
     // "in" overload (containment)
-    public bool opBinary(string op)(Set!(T, less) rhs)
+    public bool opBinary(string op)(inout Set!(T, less) rhs) inout
         if (op == "in")
     {
         foreach(elem; aat.array) {
@@ -74,12 +99,12 @@ class Set(T, alias less = (a,b)=>a<b)
     // "==" overload
     override public bool opEquals(Object o) {
         auto a = cast(Set!(T, less)) o;
-        return this.aat == a.aat;
+        return this in a && a in this;
     }
     
     // operator "+" overload
     // cup
-    public Set!(T, less) opBinary(string op)(Set!(T, less) set2)
+    public Set!(T, less) opBinary(string op)(inout Set!(T, less) set2) inout
         if (op == "+")
     {
         auto result = new Set!(T, less)();
@@ -90,7 +115,7 @@ class Set(T, alias less = (a,b)=>a<b)
     
     // operator "-" overload
     // subtract
-    public Set!(T, less) opBinary(string op)(Set!(T, less) set2)
+    public Set!(T, less) opBinary(string op)(inout Set!(T, less) set2) inout
         if (op == "-")
     {
         auto result = new Set!(T, less)();
@@ -113,7 +138,6 @@ class Set(T, alias less = (a,b)=>a<b)
         else assert(0, op ~ "= for Set is not implemented.");
     }
 }
-
 
 unittest {
     HashSet!int set1;

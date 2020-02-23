@@ -7,6 +7,24 @@ import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln;
 import std.conv: to;
 
+unittest {
+    // CTFE check
+    static const aatree = new AATree!int(3, 9, 4);
+    aatree.test();
+    static assert ( equal(aatree.array, [3, 4, 9]) );
+    static assert ( !aatree.empty );
+    static assert ( aatree.front == 3 );
+    static assert ( aatree.hasValue(9) );
+    
+    // run time check
+    auto aatree2 = new AATree!int(3, 9, 4);
+    aatree2.insert(9, -1, 2, 6);
+    aatree2.remove(2, 4);
+    assert ( equal(aatree2.array, [-1, 3, 6, 9]) );
+    assert ( aatree2.hasValue(-1) && !aatree2.hasValue(2) );
+    writeln("AATree unittest 1");
+}
+
 class AATree(T, alias less = (a,b)=>a<b)
     if ( is(typeof(less(T.init, T.init))) )
 {
@@ -26,10 +44,11 @@ class AATree(T, alias less = (a,b)=>a<b)
         insert(args);
     }
     
-    public T[] array() @property inout {
+    // array returns the array of the elements in the ascending order
+    public inout(T)[] array() @property inout {
         return array_(cast(inout(Node*)) root);
     }
-    private T[] array_(inout(Node*) node) inout {
+    private inout(T)[] array_(inout(Node*) node) inout {
         if (node == null) return [];
         return array_(node.left) ~ [node.val] ~ array_(node.right);
     }
@@ -54,10 +73,11 @@ class AATree(T, alias less = (a,b)=>a<b)
             if (node == null) return false;
             // found
             if (node.val == val) return true;
+            
             // go left
-            if (less(val, node.val)) node = node.left;
+            if      (less(val, node.val)) node = node.left;
             // go right
-            if (less(node.val, val)) node = node.right;
+            else if (less(node.val, val)) node = node.right;
         }
     }
     public bool hasValue(T val) inout {
@@ -229,19 +249,4 @@ class AATree(T, alias less = (a,b)=>a<b)
             }
         }
     }
-}
-
-unittest {
-    static const aatree = new AATree!int(3, 9, 4);
-    aatree.test();
-    static assert ( equal(aatree.array, [3, 4, 9]) );
-    static assert ( !aatree.empty );
-    static assert ( aatree.front == 3 );
-    static assert ( aatree.hasValue(9) );
-    
-    auto aatree2 = new AATree!int(3, 9, 4);
-    aatree2.insert(9, -1, 2, 6);
-    aatree2.remove(2, 4);
-    assert ( equal(aatree2.array, [-1, 3, 6, 9]) );
-    assert ( aatree2.hasValue(-1) && !aatree2.hasValue(2) );
 }
