@@ -22,7 +22,7 @@ unittest {
     aatree2.remove(2, 4);
     assert ( equal(aatree2.array, [-1, 3, 6, 9]) );
     assert ( aatree2.hasValue(-1) && !aatree2.hasValue(2) );
-    writeln("AATree unittest 1");
+    writeln("## AATree unittest 1");
 }
 
 class AATree(T, alias less = (a,b)=>a<b)

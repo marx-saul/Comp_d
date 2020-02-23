@@ -53,6 +53,17 @@ unittest {
     ));
     static const item_set1 = new LR0ItemSet(LR0Item(0, 0), LR0Item(8, 5), LR0Item(8, 1), LR0Item(3, 17));
     static assert (LR0Item(3, 16) !in item_set1);
-    static assert (LR0Item(8,1) in item_set1);
-    writeln("LR0ItemSet unittest 1");
+    static assert (LR0Item(8, 1)   in item_set1);
+    static const item_set2 = new LR0ItemSet(LR0Item(0, 1), LR0Item(1, 9), LR0Item(2, 0), LR0Item(8, 5));
+    static const item_set3 = item_set1 + item_set2;
+    static assert (LR0Item(2, 0) in item_set3);
+    
+    static const item_set_set1 = new LR0ItemSetSet(cast(LR0ItemSet) item_set1, cast(LR0ItemSet) item_set2, cast(LR0ItemSet) item_set3);
+    static assert (new LR0ItemSet(LR0Item(0, 0), LR0Item(8, 5), LR0Item(8, 1), LR0Item(3, 17)) in item_set_set1);
+    static assert (new LR0ItemSet(LR0Item(9, 0), LR0Item(9, 5), LR0Item(9, 1), LR0Item(9, 17)) !in item_set_set1);
+    
+    static const item_set_set2 = new LR0ItemSetSet(cast(LR0ItemSet) item_set1, cast(LR0ItemSet) item_set3);
+    static assert (item_set_set2 in item_set_set1);
+    
+    writeln("## LR0ItemSet unittest 1");
 }

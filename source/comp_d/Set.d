@@ -16,7 +16,6 @@ unittest {
     static const set3 = set1 + set2;
     static assert (set3 == new Set!int(3, 5, 1, 7, 8, 4, 7));
     static assert (set3 - set2 == set1);
-    writeln("Set unittest 1");
     
     Set!int test() {
         auto result = new Set!int();
@@ -28,6 +27,7 @@ unittest {
     static const set4 = test();
     static assert (10 !in set4 && 4 in set4);
     static assert ( equal(set4.array, [0,1,2,3,4,5,6,7,8,9]) );
+    writeln("## Set unittest 1");
 }
 
 // run time check
@@ -47,7 +47,7 @@ unittest {
     auto set4 = new Set!int(-8);
     set4 += set3;
     assert (set4 == new Set!int(-8, 3, 999));
-    writeln("Set unittest 2");
+    writeln("## Set unittest 2");
 }
 
 class Set(T, alias less = (a,b)=>a<b)
