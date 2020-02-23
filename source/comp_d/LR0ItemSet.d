@@ -22,7 +22,7 @@ alias LR0ItemSet = Set!(LR0Item, ItemLess);
 
 // cardinal and dictionary-order of LR0ItemSet
 // compare (a.array.length, a.array[0], a.array[1], ...) and (b.array.length, b.array[0], b.array[1], ...)
-bool ItemSetLess(LR0ItemSet a, LR0ItemSet b) {
+bool ItemSetLess(inout LR0ItemSet a, inout LR0ItemSet b) {
     auto aa = a.array, ba = b.array;
     if      (aa.length < ba.length) return true;
     else if (aa.length > ba.length) return false;
@@ -36,7 +36,7 @@ bool ItemSetLess(LR0ItemSet a, LR0ItemSet b) {
 }
 
 // LR0Item set set
-//alias LR0ItemSetSet = Set!(LR0ItemSet, ItemSetLess);
+alias LR0ItemSetSet = Set!(LR0ItemSet, ItemSetLess);
 
 unittest {
     enum : Symbol {

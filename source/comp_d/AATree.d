@@ -67,7 +67,7 @@ class AATree(T, alias less = (a,b)=>a<b)
         return node;
     }
     
-    private bool hasValue(T val, Node* node) inout {
+    private bool hasValue(inout T val, Node* node) inout {
         while (true) {
             // not found
             if (node == null) return false;
@@ -80,7 +80,7 @@ class AATree(T, alias less = (a,b)=>a<b)
             else if (less(node.val, val)) node = node.right;
         }
     }
-    public bool hasValue(T val) inout {
+    public bool hasValue(inout T val) inout {
         return hasValue(val, cast(Node*)root);
     }
     

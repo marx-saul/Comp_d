@@ -80,7 +80,7 @@ class Set(T, alias less = (a,b)=>a<b)
     
     
     // "in" overload (element)
-    public bool opBinaryRight(string op)(T elem) inout
+    public bool opBinaryRight(string op)(inout T elem) inout
         if (op == "in")
     {
         return aat.hasValue(elem);
@@ -124,7 +124,7 @@ class Set(T, alias less = (a,b)=>a<b)
         return result;
     }
     
-    public Set!(T, less) opOpAssign(string op)(Set!(T, less) set2) {
+    public Set!(T, less) opOpAssign(string op)(inout Set!(T, less) set2) {
         // operator "+=" overload
         static if (op == "+") {
             foreach (t; set2.aat.array) this.add(t);
