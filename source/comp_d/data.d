@@ -51,7 +51,7 @@ template    grammar() {
 }
 
 /*******************************/
-// for LR table (moved to LRtable.d)
+// for LR table (moved to LRTable.d)
 //alias LREntry = Tuple!(Action, ulong);
 //alias LRTable = LREntry[][Symbol];
 

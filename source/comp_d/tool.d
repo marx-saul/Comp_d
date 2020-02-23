@@ -5,21 +5,22 @@ import std.typecons;
 import std.array, std.container;
 import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln;
+import std.conv: to;
 
 unittest {
-    enum set1 = SymbolSet(4, [2,3,-1]);
+    static const set1 = new SymbolSet(4, [2,3,-1]);
     SymbolSet Test1() {
-        auto result = SymbolSet(4, [2,3,1]);
+        auto result = new SymbolSet(4, [2,3,1]);
         result.add(-2,-1);
         return result;
     }
-    enum set2 = Test1();
+    static const set2 = Test1();
     static assert (1 !in set1);
     static assert (set1 in set2);
-    enum set3 = SymbolSet(4, [-2, 1]);
+    static const set3 = new SymbolSet(4, [-2, 1]);
     static assert (set1 + set3 == set2);
     
-    static assert (SymbolSet(4, [-3, -2, -1, 0, 1, 2, 3]) - SymbolSet(4, [-3, -1, 0, 2, 3]) == set3);
+    static assert (new SymbolSet(4, [-3, -2, -1, 0, 1, 2, 3]) - new SymbolSet(4, [-3, -1, 0, 2, 3]) == set3);
     writeln("## tool unittest 1");
 }
 
@@ -40,8 +41,7 @@ unittest {
     static const first_table  = grammar_info.first_test();
     static const follow_table = grammar_info.follow_test();
     
-    
-    writeln(first_table[Expr].array);
+    //writeln(first_table[Expr].array);
     static assert ( equal(first_table[Expr]  .array, [digit, lPar]) );
     static assert ( equal(first_table[Term]  .array, [digit, lPar]) );
     static assert ( equal(first_table[Factor].array, [digit, lPar]) );
@@ -82,7 +82,8 @@ unittest {
     static assert ( equal(follow_table[Term]  .array, [end_of_file_, add, rPar]) );
     static assert ( equal(follow_table[Term_] .array, [end_of_file_, add, rPar]) );
     static assert ( equal(follow_table[Factor].array, [end_of_file_, add, mul, rPar]) );
-    static assert ( follow_table[Factor].array == 4);
+    static assert ( follow_table[Factor].cardinal ==  follow_table[Factor].array.length);
+    
     writeln("## tool unittest 3");
 }
 
@@ -90,21 +91,39 @@ class GrammarInfo {
     public Grammar grammar;
     private Symbol start_symbol;
     private Symbol max_symbol_number;
+    public  Symbol max_symbol_num() @property inout {
+        return max_symbol_number;
+    };
     private SymbolSet appearing_symbols;
+    public  immutable(SymbolSet) appearings() @property inout {
+        return cast(immutable SymbolSet) appearing_symbols;
+    }
     private Symbol[]  appearing_symbols_array;
     private SymbolSet nonterminal_symbols;
+    public  immutable(SymbolSet) nonterminals() @property inout {
+        return cast(immutable SymbolSet) nonterminal_symbols;
+    }
     private Symbol[]  nonterminal_symbols_array;
     private SymbolSet terminal_symbols;
     private Symbol[]  terminal_symbols_array;
     private SymbolSet[] first_table;
     private SymbolSet[] follow_table;
-    this(Grammar g) {
+    this(Grammar g, bool augment = true) {
         assert(g.length > 0, "\033[1m\033[32mthe length of the grammar must be > 0.\033[0m");
-        grammar = g;
-        start_symbol = g[0].lhs;
         
         // the maximum of the symbol number in the grammar.
-        max_symbol_number = grammar.map!((Rule rule) => maxSymbolNumber(rule)).reduce!((a,b) => max(a,b));
+        max_symbol_number = g.map!((Rule rule) => maxSymbolNumber(rule)).reduce!((a,b) => max(a,b));
+        
+        if (augment) {
+            grammar = g ~ [rule(max_symbol_num+1, g[0].lhs)];
+            ++max_symbol_number;
+            start_symbol = max_symbol_number;
+        }
+        else {
+            grammar = g;
+            start_symbol = g[0].lhs;
+        }
+        
         // set of symbols that appear in the grammar
         appearing_symbols = appearingSymbolSet(grammar);
         appearing_symbols_array = appearing_symbols.array;
@@ -117,15 +136,16 @@ class GrammarInfo {
         first_table = calcFirstTable(grammar, max_symbol_number, appearing_symbols, nonterminal_symbols);
         // follow table
         follow_table = calcFollowTable(grammar, nonterminal_symbols);
+        
     }
     
-    private Symbol maxSymbolNumber(Rule rule) {
+    private Symbol maxSymbolNumber(Rule rule) inout {
         return max( rule.lhs, rule.rhs.reduce!((a,b) => max(a,b)) );
     }
     
     // for symbol set
-    private SymbolSet symbolSet(Symbol[] args...) inout {
-        return SymbolSet(max_symbol_number, args);
+    public SymbolSet symbolSet(Symbol[] args...) inout {
+        return new SymbolSet(max_symbol_number, args);
     }
     
     // nonterminal, appearing
@@ -178,7 +198,7 @@ class GrammarInfo {
             bool nothing_to_add = true;
             
             foreach (rule; grammar2) {
-                auto previous_num = nothing_to_add ? result[rule.lhs].cardinal : 0;
+                auto previous_num = result[rule.lhs].cardinal;
                 
                 // already empty_ is in the rule
                 auto empty_in = empty_ in result[rule.lhs];
@@ -197,7 +217,7 @@ class GrammarInfo {
                 if (!all_empty_flag && !empty_in) result[rule.lhs].remove(empty_);
             
                 // FIRST(X) was updated
-                if (nothing_to_add && result[rule.lhs].cardinal > previous_num) nothing_to_add = false;
+                if (result[rule.lhs].cardinal > previous_num) nothing_to_add = false;
             }
             if (nothing_to_add) break;
         }
@@ -248,7 +268,7 @@ class GrammarInfo {
             bool nothing_to_add = true;
             foreach (rule; grammar) {
                 foreach (i, symbol; rule.rhs) {
-                    auto previous_num = nothing_to_add ? result[symbol].cardinal : 0;
+                    auto previous_num = result[symbol].cardinal;
                     
                     if (symbol !in nonterminals) continue;
                     auto first_t = first(rule.rhs[i+1 .. $]);
@@ -256,13 +276,14 @@ class GrammarInfo {
                     if (empty_ in first_t) result[symbol] += result[rule.lhs];
                     
                     // FOLLOW(symbol) was updated
-                    if (nothing_to_add && result[symbol].cardinal > previous_num) nothing_to_add = false;
+                    if (result[symbol].cardinal > previous_num) nothing_to_add = false;
                 }
             }
             if (nothing_to_add) break;
         }
         
         foreach (set; result) set.remove(empty_);
+        
         return result;
     }
     
@@ -290,7 +311,7 @@ class GrammarInfo {
 /****************************
  * CONSTRUCTOR MUST BE CALLED
  ***************************/ 
-struct SymbolSet {
+class SymbolSet {
     // data[symbol+max_symbol_number] is true iff symbol is in the set.
     private bool[] data;
     private Symbol max_symbol_number;
@@ -302,8 +323,8 @@ struct SymbolSet {
         }
         return result;
     }
-    private ulong cardinal_;
-    public @property ulong cardinal() /+const+/ {
+    private size_t cardinal_;
+    public @property size_t cardinal() inout {
         return cardinal_;
         /+ulong result;
         foreach(flag; data) if (flag) ++result;
@@ -332,6 +353,7 @@ struct SymbolSet {
         }
     }
     public void remove(Symbol[] args...) {
+        
         foreach (arg; args) {
             if (0 <= arg+special_tokens && arg+special_tokens <= data.length) {
                 if (data[arg+special_tokens]) {
@@ -341,13 +363,14 @@ struct SymbolSet {
             }
             else
                 assert(0, "\033[1m\033[32mSymbolSet.add got a parameter out of range.\033[0m");
+            
         }
     }
     
     // in the operator overloadings, it is assumed that max_symbol_number are equal.
     
     // "in" overload (element)
-    public bool opBinaryRight(string op)(Symbol elem) inout
+    public bool opBinaryRight(string op)(inout Symbol elem) inout
         if (op == "in")
     {
         return data[elem+special_tokens];
@@ -364,22 +387,23 @@ struct SymbolSet {
     }
     
     // "==" overload
-    public bool opEquals(inout SymbolSet rhs) inout  {
+    override public bool opEquals(Object o) {
+        auto rhs = cast(SymbolSet) o;
         return (this in rhs) && (rhs in this);
     }
     
     // "+", "-" overload: cup, sub
-    public SymbolSet opBinary(string op)(SymbolSet rhs) inout
+    public SymbolSet opBinary(string op)(inout SymbolSet rhs) inout
         if (op == "+" || op == "-")
     {
-        auto result = SymbolSet(max_symbol_number);
+        auto result = new SymbolSet(max_symbol_number);
         result.data = this.data.dup;
         foreach (i, flag; rhs.data) if (flag) result.data[i] = (op == "+");
         result.cardinal_ = result.array.length;
         return result;
     }
     
-    public SymbolSet opOpAssign(string op)(SymbolSet rhs) {
+    public SymbolSet opOpAssign(string op)(inout SymbolSet rhs) {
         // operator "+=" overload
         static if (op == "+" || op == "-") {
             foreach (i, flag; rhs.data) if (flag) this.data[i] = (op == "+");
@@ -388,6 +412,5 @@ struct SymbolSet {
         }
         else assert(0, "\033[1m\033[32m" ~ op ~ "= for Set is not implemented.\033[0m");
     }
-    
 }
 

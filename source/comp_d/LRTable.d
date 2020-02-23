@@ -18,6 +18,7 @@ unittest {
     auto table = new LRTable(6, 4);
     table[1, 2] = LRentry(Action.shift, 0);
     assert(table[1,2] == LRentry(Action.shift, 0));
+    writeln("## LRTable unittest 1");
 }
 
 // LR parser table
