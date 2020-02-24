@@ -6,7 +6,7 @@ import std.array, std.container, std.container.binaryheap;
 import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln, write;
 import std.conv: to;
-
+/+
 unittest {
     enum : Symbol {
         S, Expr, Term, Factor,
@@ -20,7 +20,7 @@ unittest {
         rule(Term, Factor),
         rule(Factor, digit),
         rule(Factor, lPar, Expr, rPar)
-    ), false);          // no augment
+    ), augment=false);          // no augment
     // closure CTFE test
     static const item_set1  = new LR0ItemSet(LR0Item(0, 0));   // { [S -> .Expr] }
     static const item_set2 = closure(grammar_info, item_set1);
@@ -56,7 +56,7 @@ unittest {
     
     writeln("## SLR unittest 1");
 }
-
++/
 unittest {
     enum : Symbol {
         Expr, Term, Factor,
@@ -115,14 +115,16 @@ unittest {
      
      
     // show the SLR table
-    static const table = SLRtableInfo(grammar_info).table;
-    foreach (i; 0 .. table.state_num) {
-        write(i, ":\t");
-        foreach (sym; [digit, add, mul, lPar, rPar, end_of_file_, Expr, Term, Factor]) {
-            write(table[i, sym].action, table[i, sym].num, ", \t");
-        }
-        writeln();
-    }
+    static const table_info = SLRtableInfo(grammar_info);
+    static const table = table_info.table;
+    //foreach (i; 0 .. table.state_num) {
+    //    write(i, ":\t");
+    //    foreach (sym; [digit, add, mul, lPar, rPar, end_of_file_, Expr, Term, Factor]) {
+    //        write(table[i, sym].action, table[i, sym].num, ", \t");
+    //    }
+    //    writeln();
+    //}
+    static assert (!table_info.is_conflict);
     /+ 4 -> 5, 5 -> 4 +/
     
     writeln("## SLR unittest 2");
@@ -254,4 +256,46 @@ LRTableInfo SLRtableInfo(inout const GrammarInfo grammar_info) {
     }
     
     return result;
+}
+
+// When conflict occurs, one can use this function to see where the conflict occurs
+void showSLRtableInfo(inout const GrammarInfo grammar_info) {
+    auto grammar = grammar_info.grammar;
+    auto collection = canonicalLR0Collection(grammar_info);
+    // show the collection
+    foreach (k, item_set; collection.array) {
+        // write item
+        writeln("ITEM-", k, " = {");
+        foreach (item; item_set.array) {
+            auto rule = grammar[item.num];
+            if (item.num == grammar.length-1) write("\t\033[1m\033[31m", item.num, "\033[0m");
+            else write("\t", item.num);
+            write(": [", grammar_info.nameOf(rule.lhs), "  ->  ");
+            foreach (l; 0 .. item.index)               write(grammar_info.nameOf(rule.rhs[l]), " ");
+            write("\033[1m\033[37m.\033[0m");
+            foreach (l; item.index .. rule.rhs.length) write(grammar_info.nameOf(rule.rhs[l]), " ");
+            writeln("], ");
+        }
+        writeln("},");
+    }
+    // show the table
+    auto table_info = SLRtableInfo(grammar_info);
+    auto table = table_info.table;
+    auto symbols_array = grammar_info.terminals.array ~ [end_of_file_] ~ grammar_info.nonterminals.array[0 .. $-1] ;
+    foreach (sym; symbols_array) {
+        write("\t", grammar_info.nameOf(sym));
+    }
+    writeln();
+    foreach (i; 0 .. table.state_num) {
+        write(i, ":\t");
+        foreach (sym; symbols_array) {
+            auto act = table[i, sym].action;
+            if      (act == Action.error)  { write("err, \t"); }
+            else if (act == Action.accept) { write("\033[1m\033[37macc\033[0m, \t"); }
+            else if (act == Action.shift)  { write("\033[1m\033[36ms\033[0m-", table[i, sym].num, ", \t"); }
+            else if (act == Action.reduce) { write("\033[1m\033[33mr\033[0m-", table[i, sym].num, ", \t"); }
+            else if (act == Action.goto_)  { write("\033[1m\033[32mg\033[0m-", table[i, sym].num, ", \t"); }
+        }
+        writeln();
+    }
 }

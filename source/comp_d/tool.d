@@ -6,7 +6,7 @@ import std.array, std.container;
 import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln;
 import std.conv: to;
-
+/+
 unittest {
     static const set1 = new SymbolSet(4, [2,3,-1]);
     SymbolSet Test1() {
@@ -23,7 +23,7 @@ unittest {
     static assert (new SymbolSet(4, [-3, -2, -1, 0, 1, 2, 3]) - new SymbolSet(4, [-3, -1, 0, 2, 3]) == set3);
     writeln("## tool unittest 1");
 }
-
++/
 unittest {
     enum : Symbol {
         Expr, Term, Factor,
@@ -89,6 +89,16 @@ unittest {
 
 class GrammarInfo {
     public Grammar grammar;
+    private bool augment_flag;
+    private string[] symbol_name_dictionary;
+    public  string nameOf(Symbol sym) inout {
+        if      (sym == virtual)      return "#";
+        else if (sym == end_of_file_) return "$";
+        else if (sym == empty_)       return "ε";
+        else if (0 <= sym && sym < symbol_name_dictionary.length) return symbol_name_dictionary[sym];
+        else if (sym == max_symbol_number && augment_flag) return "S'";
+        else return to!string(sym);
+    }
     private Symbol start_symbol;
     public  Symbol start_sym() @property inout {
         return start_symbol;
@@ -108,15 +118,20 @@ class GrammarInfo {
     }
     private Symbol[]  nonterminal_symbols_array;
     private SymbolSet terminal_symbols;
+    public  immutable(SymbolSet) terminals() @property inout {
+        return cast(immutable SymbolSet) terminal_symbols;
+    }
     private Symbol[]  terminal_symbols_array;
     private SymbolSet[] first_table;
     private SymbolSet[] follow_table;
-    this(Grammar g, bool augment = true) {
+    this(Grammar g, string[] snd = [], bool augment = true) {
         assert(g.length > 0, "\033[1m\033[32mthe length of the grammar must be > 0.\033[0m");
+        symbol_name_dictionary = snd;
         
         // the maximum of the symbol number in the grammar.
         max_symbol_number = g.map!((Rule rule) => maxSymbolNumber(rule)).reduce!((a,b) => max(a,b));
         
+        augment_flag = augment;
         if (augment) {
             grammar = g ~ [rule(max_symbol_num+1, g[0].lhs)];
             ++max_symbol_number;

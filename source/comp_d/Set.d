@@ -29,7 +29,7 @@ unittest {
     static assert ( equal(set4.array, [0,1,2,3,4,5,6,7,8,9]) );
     writeln("## Set unittest 1");
 }
-
+/+
 // run time check
 unittest {
     auto set1 = new Set!int(3, 1, 4);
@@ -49,7 +49,7 @@ unittest {
     assert (set4 == new Set!int(-8, 3, 999));
     writeln("## Set unittest 2");
 }
-
++/
 class Set(T, alias less = (a,b)=>a<b)
     if ( is(typeof(less(T.init, T.init))) )
 {

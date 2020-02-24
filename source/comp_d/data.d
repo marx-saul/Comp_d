@@ -7,7 +7,7 @@ import std.algorithm, std.container.rbtree, std.array;
 /******************************/
 // Symbol
 alias Symbol = ptrdiff_t;
-enum bool isSymbol(T) = is(T == Symbol);
+enum bool isSymbol(T) = is(T : Symbol);
 
 // empty symbol, end of file symbol (for LRs), virtual (for LALR algorithm)
 enum Symbol empty_ = -1, end_of_file_ = -2, virtual = -3;
@@ -16,7 +16,7 @@ immutable special_tokens = 3;    // empty_, end_of_file, virtual. see data.d
 /*******************************/
 // Rule
 alias Rule = Tuple!(Symbol, "lhs", Symbol[], "rhs");
-enum bool isRule(T) = is(T == Rule);
+enum bool isRule(T) = is(T : Rule);
 
 template rule() {
     Rule rule(Args...)(Args symbols) {
