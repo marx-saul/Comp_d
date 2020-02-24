@@ -11,7 +11,7 @@ void main() {
         Expr, Expr_, Term, Term_, Factor,
         digit, add, mul, lPar, rPar
     }
-    static const grammar_info = new GrammarInfo(grammar(
+    auto grammar_info = new GrammarInfo(grammar(
         rule(Expr, Term, Expr_),
         rule(Expr_, add, Term, Expr_),
         rule(Expr_, empty_),
@@ -21,5 +21,14 @@ void main() {
         rule(Factor, digit),
         rule(Factor, lPar, Expr, rPar)
     ));
+    //writeln(grammar_info.grammar);
+    auto collection = canonicalLR0Collection(grammar_info);
+    // show the items
+    foreach (item_set; collection) {
+        foreach (item; item_set.array) {
+            write(item, ", ");
+        }
+        writeln();
+    }
 }
 

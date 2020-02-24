@@ -90,6 +90,9 @@ unittest {
 class GrammarInfo {
     public Grammar grammar;
     private Symbol start_symbol;
+    public  Symbol start_sym() @property inout {
+        return start_symbol;
+    }
     private Symbol max_symbol_number;
     public  Symbol max_symbol_num() @property inout {
         return max_symbol_number;
@@ -177,12 +180,12 @@ class GrammarInfo {
         
         // cut and add empty 
         foreach (ref rule; grammar) {
-            rule.rhs = rule.rhs.filter!(symbol => symbol != empty_).array;
+            auto new_rule = rule.rhs.filter!(symbol => symbol != empty_).array;
             //writeln(rule.rhs);
-            if (rule.rhs.empty) result[rule.lhs].add(empty_);
+            if (new_rule.empty) result[rule.lhs].add(empty_);
         }
         // cut empty generating rules
-        auto grammar2 = grammar.filter!( rule => !rule.rhs.empty );
+        auto grammar2 = grammar.filter!( rule => !rule.rhs.filter!(symbol => symbol != empty_).empty );
         
         // if X is a terminal symbol, FIRST(X) = {X}
         foreach (sym; appearing_symbols_array) {
@@ -268,6 +271,8 @@ class GrammarInfo {
             bool nothing_to_add = true;
             foreach (rule; grammar) {
                 foreach (i, symbol; rule.rhs) {
+                    // ignore empty
+                    if (symbol < 0) continue;
                     auto previous_num = result[symbol].cardinal;
                     
                     if (symbol !in nonterminals) continue;
@@ -285,6 +290,12 @@ class GrammarInfo {
         foreach (set; result) set.remove(empty_);
         
         return result;
+    }
+    
+    // FOLLOW(A)
+    public SymbolSet follow(Symbol symbol) inout {
+        if (symbol.among!(empty_, end_of_file_, virtual)) assert(0, "follow cannot take parameter, " ~ to!string(symbol));
+        else return cast(SymbolSet) follow_table[symbol];
     }
     
     version (unittest) {
