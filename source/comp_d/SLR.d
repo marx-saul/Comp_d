@@ -115,7 +115,7 @@ unittest {
      
      
     // show the SLR table
-    static const table = SLRtable(grammar_info);
+    static const table = SLRtableInfo(grammar_info).table;
     foreach (i; 0 .. table.state_num) {
         write(i, ":\t");
         foreach (sym; [digit, add, mul, lPar, rPar, end_of_file_, Expr, Term, Factor]) {
@@ -217,9 +217,10 @@ LR0ItemSet[] canonicalLR0Collection(inout const GrammarInfo grammar_info) {
 // grammar_info.grammar is supposed to be augmented when passed to this function.
 // Then grammar_info.grammar[$-1] is [S' -> S]
 // and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
-LRTable SLRtable(inout const GrammarInfo grammar_info) {
+// This considers the conflict.
+LRTableInfo SLRtableInfo(inout const GrammarInfo grammar_info) {
     auto collection = canonicalLR0Collection(grammar_info);
-    auto result = new LRTable(collection.length, grammar_info.max_symbol_num);
+    auto result = new LRTableInfo(collection.length, grammar_info.max_symbol_num);
     auto grammar = grammar_info.grammar;
     
     foreach (i, item_set; collection) {
@@ -234,19 +235,19 @@ LRTable SLRtable(inout const GrammarInfo grammar_info) {
                 // goto(I_i, A) = I_j
                 auto j = collection.countUntil(_goto(grammar_info, item_set, sym));
                 // [i, sym] = goto j
-                if (sym in grammar_info.nonterminals) result[i, sym] = LREntry(Action.goto_, j);
-                else result[i, sym] = LREntry(Action.shift, j);
+                if (sym in grammar_info.nonterminals) result.add( LREntry(Action.goto_, j), i, sym );
+                else                                  result.add( LREntry(Action.shift, j), i, sym );
             }
             // item is [X -> sA.]
             else {
                 // X is not S'
                 if (rule.lhs != grammar_info.start_sym) {
                     foreach (sym; grammar_info.follow(rule.lhs).array)
-                        result[i, sym] = LREntry(Action.reduce, item.num);
+                        result.add( LREntry(Action.reduce, item.num), i, sym );
                 }
                 // X = S'
                 else {
-                   result[i, end_of_file_] = LREntry(Action.accept, 0);
+                   result.add( LREntry(Action.accept, 0), i, end_of_file_ );
                 }
             }
         }
@@ -254,4 +255,3 @@ LRTable SLRtable(inout const GrammarInfo grammar_info) {
     
     return result;
 }
-
