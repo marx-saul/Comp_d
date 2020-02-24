@@ -11,6 +11,8 @@ enum Action : byte { error = 0, accept = 1, shift = 2, reduce = 3, goto_ = 4 }
 alias State = size_t;
 alias LREntry = Tuple!(Action, "action", State, "num");
 alias LREntrySet = Set!(LREntry, (a,b) => a.action < b.action || (a.action == b.action && a.num < b.num) );
+alias EntryIndex = Tuple!(State, "state", Symbol, "symbol");
+alias EntryIndexSet = Set!(EntryIndex, (a,b) => a.state < b.state || (a.state == b.state && a.symbol < b.symbol));
 
 //unittest {
     //auto table = new LRTable(6, 4);
@@ -67,18 +69,33 @@ class LRTableInfo {
     // see LRTable.opIndex
     private LREntrySet[][] set_data;    // for confliction
     public  LRTable table;               // if there were no confliction, this will be the LRTable of the grammar
-    public  bool is_conflict;
+    
+    //public  bool is_conflict;
+    
+    private EntryIndexSet conflict_index_set;
+    public  bool is_conflict() @property {
+        return conflict_index_set.cardinal > 0;
+    }
+    public EntryIndex[] conflictings() @property {
+        return conflict_index_set.array;
+    }
+    
+    private State state_number;
+    public State state_num() @property inout const {
+        return state_number;
+    }
     
     this(State state_num, Symbol msyn) {
         // init
         table = new LRTable(state_num, msyn);
         // reserve
-        set_data.length = state_num;
+        set_data.length = state_num; state_number = state_num;
         // initialize
         foreach (state; 0 .. state_num) {
             set_data[state].length = msyn+2;    // consider end_of_file_ = -2
             foreach (symbol; 0 .. msyn+2) set_data[state][symbol] = new LREntrySet();
         }
+        conflict_index_set = new EntryIndexSet();
     }
     
     // return the set
@@ -94,6 +111,7 @@ class LRTableInfo {
         auto access = table.get_index(symbol);
         // determine the entry
         table[state, symbol] = value;
+        conflict_index_set.remove(EntryIndex(state, symbol));
     }
     
     // add entry to the table[state, symbol]
@@ -101,7 +119,9 @@ class LRTableInfo {
         auto access = table.get_index(symbol);
         set_data[state][access].add(value);
         // conflicted
-        if (table[state, symbol].action != Action.error && table[state, symbol] != value) is_conflict = true;
+        if (table[state, symbol].action != Action.error && table[state, symbol] != value) {
+            conflict_index_set.add(EntryIndex(state, symbol));
+        }
         else table[state, symbol] = value;
     }
 }

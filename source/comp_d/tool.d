@@ -4,7 +4,7 @@ import comp_d.data;
 import std.typecons;
 import std.array, std.container;
 import std.algorithm, std.algorithm.comparison;
-import std.stdio: writeln;
+import std.stdio: writeln, write;
 import std.conv: to;
 /+
 unittest {
@@ -334,6 +334,23 @@ class GrammarInfo {
     }
 }
 
+// show first tables
+void showFirstTable(const GrammarInfo grammar_info) {
+    foreach (sym; grammar_info.nonterminals.array) {
+        write("First(", grammar_info.nameOf(sym), ")\t= {");
+        foreach (sym2; grammar_info.first(sym).array) write(grammar_info.nameOf(sym2), ", ");
+        writeln("},");
+    }
+}
+
+// show first tables
+void showFollowTable(const GrammarInfo grammar_info) {
+    foreach (sym; grammar_info.nonterminals.array) {
+        write("Follow(", grammar_info.nameOf(sym), ")\t= {");
+        foreach (sym2; grammar_info.follow(sym).array) write(grammar_info.nameOf(sym2), ", ");
+        writeln("},");
+    }
+}
 /****************************
  * CONSTRUCTOR MUST BE CALLED
  ***************************/ 

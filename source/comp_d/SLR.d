@@ -5,58 +5,64 @@ import std.typecons;
 import std.array, std.container, std.container.binaryheap;
 import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln, write;
-import std.conv: to;
+
+// grammars that passed to these functions must be augmented.
 /+
 unittest {
     enum : Symbol {
-        S, Expr, Term, Factor,
+        Expr, Term, Factor,
         digit, add, mul, lPar, rPar
     }
-    static const grammar_info = new GrammarInfo(grammar(
-        rule(S, Expr),
+    auto grammar_info = new GrammarInfo(grammar(
         rule(Expr, Expr, add, Term),
         rule(Expr, Term),
         rule(Term, Term, mul, Factor),
         rule(Term, Factor),
         rule(Factor, digit),
-        rule(Factor, lPar, Expr, rPar)
-    ), augment=false);          // no augment
-    // closure CTFE test
-    static const item_set1  = new LR0ItemSet(LR0Item(0, 0));   // { [S -> .Expr] }
-    static const item_set2 = closure(grammar_info, item_set1);
-    static assert (
-        item_set2 == new LR0ItemSet(
-            LR0Item(0, 0),  // S -> .Expr
-            LR0Item(1, 0),  // Expr -> .Expr + Term
-            LR0Item(2, 0),  // Expr -> .Term
-            LR0Item(3, 0),  // Term -> .Term * Factor
-            LR0Item(4, 0),  // Term -> .Factor
-            LR0Item(5, 0),  // Factor -> .( Expr )
-            LR0Item(6, 0)   // Factor -> .digit
-        )
-    );
-    // goto CTFE test
-    static const item_set3 = _goto(grammar_info, item_set2, Expr);
-    static assert (
-        item_set3 == new LR0ItemSet(
-            LR0Item(0, 1),  // S -> Expr.
-            LR0Item(1, 1),  // Expr -> Expr. + Term
-        )
-    );
-    static const item_set4 = _goto(grammar_info, item_set3, add);
-    static assert (
-        item_set4 == new LR0ItemSet(
-            LR0Item(1, 2),  // Expr -> Expr + .Term
-            LR0Item(3, 0),  // Term -> .Term * Factor
-            LR0Item(4, 0),  // Term -> .Factor
-            LR0Item(5, 0),  // Factor -> .( Expr )
-            LR0Item(6, 0)   // Factor -> .digit
-        )
-    );
+        rule(Factor, lPar, Expr, rPar),
+    ), ["Expr", "Term", "Factor", "digit", "+", "*", "(", ")"]);
     
+    //showSLRtableInfo(grammar_info);
     writeln("## SLR unittest 1");
 }
+unittest {
+    // this is not an SLR(1) grammar
+    enum : Symbol {
+        S, L, R, eq, star, id
+    }
+    auto grammar_info = new GrammarInfo(grammar(
+        rule(S, L, eq, R),
+        rule(S, R),
+        rule(L, star, R),
+        rule(L, id),
+        rule(R, L),
+    ), ["S", "L", "R", "=", "*", "id"]);
+    
+    showSLRtableInfo(grammar_info);
+    showFollowTable(grammar_info);
+    writeln("## SLR unittest 2");
+}
 +/
+/+
+unittest {
+    enum : Symbol {
+        S, A, B, a, b, c, d, e
+    }
+    // reduce-reduce conflict occurs
+    auto grammar_info = new GrammarInfo(grammar(
+        rule(S, a, A, d),
+        rule(S, b, B, d),
+        rule(S, a, B, e),
+        rule(S, b, A, e),
+        rule(A, c),
+        rule(B, c),
+    ), ["S", "A", "B", "a", "b", "c", "d", "e"]);
+    
+    showSLRtableInfo(grammar_info);
+    writeln("## SLR unittest 3");
+}
++/
+/*
 unittest {
     enum : Symbol {
         Expr, Term, Factor,
@@ -88,30 +94,6 @@ unittest {
             new LR0ItemSet(LR0Item(5, 3))
         ] )
     );
-    
-    /+
-    // show the items
-    foreach (i, item_set; collection) {
-        writeln(i, ":");
-        foreach (item; item_set.array) {
-            writeln("\t", item, ", ");
-        }
-    }
-    +/
-    /+ the result rewritten
-     + (0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0) 
-     + (0, 1), (6, 1)
-     + (1, 1), (2, 1)
-     + (3, 1)
-     + (4, 1)
-     + (0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (5, 1)
-     + (0, 2), (2, 0), (3, 0), (4, 0), (5, 0)
-     + (2, 2), (4, 0), (5, 0)
-     + (0, 1), (5, 2)
-     + (0, 3), (2, 1)
-     + (2, 3)
-     + (5, 3)
-     +/
      
      
     // show the SLR table
@@ -129,8 +111,9 @@ unittest {
     
     writeln("## SLR unittest 2");
 }
+*/
 
-// replace item_set by its closure
+// return closure
 LR0ItemSet closure(inout const GrammarInfo grammar_info, inout LR0ItemSet item_set) {
     auto result = new LR0ItemSet( (cast(LR0ItemSet) item_set).array);
     auto grammar = grammar_info.grammar;
@@ -228,29 +211,30 @@ LRTableInfo SLRtableInfo(inout const GrammarInfo grammar_info) {
     foreach (i, item_set; collection) {
         foreach (item; item_set.array) {
             auto rule = grammar[item.num];
-            // item is [X -> s.At]
+            // item is  [X -> s.At]
             if (item.index < rule.rhs.length) {
                 auto sym  = rule.rhs[item.index];
                 // ignore empty
                 if (sym < 0) continue;
                 
-                // goto(I_i, A) = I_j
+                // goto(item_set, A) = item_set2
+                auto item_set2 = _goto(grammar_info, item_set, sym);
+                if (item_set2.cardinal == 0) continue;
+                
                 auto j = collection.countUntil(_goto(grammar_info, item_set, sym));
                 // [i, sym] = goto j
-                if (sym in grammar_info.nonterminals) result.add( LREntry(Action.goto_, j), i, sym );
+                if (sym in grammar_info.nonterminals) result.add( LREntry(Action.goto_, j), i, sym );   // As goto is empty if . is at the end
                 else                                  result.add( LREntry(Action.shift, j), i, sym );
             }
-            // item is [X -> sA.]
+            // item is [X -> s.]
             else {
                 // X is not S'
-                if (rule.lhs != grammar_info.start_sym) {
+                if (rule.lhs != grammar_info.start_sym)
                     foreach (sym; grammar_info.follow(rule.lhs).array)
                         result.add( LREntry(Action.reduce, item.num), i, sym );
-                }
                 // X = S'
-                else {
+                else
                    result.add( LREntry(Action.accept, 0), i, end_of_file_ );
-                }
             }
         }
     }
@@ -272,12 +256,13 @@ void showSLRtableInfo(inout const GrammarInfo grammar_info) {
             else write("\t", item.num);
             write(": [", grammar_info.nameOf(rule.lhs), "  ->  ");
             foreach (l; 0 .. item.index)               write(grammar_info.nameOf(rule.rhs[l]), " ");
-            write("\033[1m\033[37m.\033[0m");
+            write("\b\033[1m\033[37m.\033[0m");
             foreach (l; item.index .. rule.rhs.length) write(grammar_info.nameOf(rule.rhs[l]), " ");
             writeln("], ");
         }
         writeln("},");
     }
+    
     // show the table
     auto table_info = SLRtableInfo(grammar_info);
     auto table = table_info.table;
@@ -290,11 +275,27 @@ void showSLRtableInfo(inout const GrammarInfo grammar_info) {
         write(i, ":\t");
         foreach (sym; symbols_array) {
             auto act = table[i, sym].action;
-            if      (act == Action.error)  { write("err, \t"); }
+            // conflict
+            if (table_info[i, sym].cardinal > 1) { write("\033[1m\033[31mcon\033[0m, \t"); }
+            else if (act == Action.error)  { write("err, \t"); }
             else if (act == Action.accept) { write("\033[1m\033[37macc\033[0m, \t"); }
             else if (act == Action.shift)  { write("\033[1m\033[36ms\033[0m-", table[i, sym].num, ", \t"); }
             else if (act == Action.reduce) { write("\033[1m\033[33mr\033[0m-", table[i, sym].num, ", \t"); }
             else if (act == Action.goto_)  { write("\033[1m\033[32mg\033[0m-", table[i, sym].num, ", \t"); }
+        }
+        writeln();
+    }
+    //writeln(table_info.is_conflict);
+    foreach (index2; table_info.conflictings) {
+        auto i = index2.state; auto sym = index2.symbol;
+        write("action[", i, ", ", grammar_info.nameOf(sym), "] : ");
+        foreach (entry; table_info[i, sym].array) {
+            auto act = entry.action;
+            if      (act == Action.error)  { write("err, "); }
+            else if (act == Action.accept) { write("\033[1m\033[37macc\033[0m, "); }
+            else if (act == Action.shift)  { write("\033[1m\033[36ms\033[0m-", entry.num, ", "); }
+            else if (act == Action.reduce) { write("\033[1m\033[33mr\033[0m-", entry.num, ", "); }
+            else if (act == Action.goto_)  { write("\033[1m\033[32mg\033[0m-", entry.num, ", "); }
         }
         writeln();
     }

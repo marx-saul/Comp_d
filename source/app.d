@@ -7,33 +7,37 @@ import std.array, std.container;
 import std.algorithm, std.algorithm.comparison;
 
 void main() {
+    /+
     enum : Symbol {
-        Expr, Term, Factor,
+        Expr, Expr_, Term, Term_, Factor,
         digit, add, mul, lPar, rPar
     }
     auto grammar_info = new GrammarInfo(grammar(
-        rule(Expr, Expr, add, Term),
-        rule(Expr, Term),
-        rule(Term, Term, mul, Factor),
-        rule(Term, Factor),
+        rule(Expr, Term, Expr_),
+        rule(Expr_, add, Term, Expr_),
+        rule(Expr_, empty_),
+        rule(Term, Factor, Term_),
+        rule(Term_, mul, Factor, Term_),
+        rule(Term_, empty_),
         rule(Factor, digit),
         rule(Factor, lPar, Expr, rPar),
-    ), ["Expr", "Term", "Factor", "digit", "+", "*", "(", ")"]);
+    ), ["Expr", "Expr'", "Term", "Term'", "Factor", "id", "+", "*", "(", ")"]);
     
-    /*
-    // show the SLR table
-    auto table_info = SLRtableInfo(grammar_info);
-    auto table = table_info.table;
-    foreach (i; 0 .. table.state_num) {
-        write(i, ":\t");
-        foreach (sym; [digit, add, mul, lPar, rPar, end_of_file_, Expr, Term, Factor]) {
-            write(table[i, sym].action, table[i, sym].num, ",  \t");
-        }
-        writeln();
-    }
-    
-    writeln(table_info.is_conflict);
-    */
     showSLRtableInfo(grammar_info);
+    +/
+    enum : Symbol {
+        S, A, B, a, b, c, d, e
+    }
+    // reduce-reduce conflict occurs
+    auto grammar_info = new GrammarInfo(grammar(
+        rule(S, a, A, d),
+        rule(S, b, B, d),
+        rule(S, a, B, e),
+        rule(S, b, A, e),
+        rule(A, c),
+        rule(B, c),
+    ), ["S", "A", "B", "a", "b", "c", "d", "e"]);
+    
+    showLRtableInfo(grammar_info);
 }
 

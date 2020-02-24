@@ -1,271 +1,144 @@
 module comp_d.LALR;
-import std.algorithm;
-import std.array;
-import std.stdio;
+
+import comp_d.SLR: closure, _goto, canonicalLR0Collection, SLRtableInfo;
+import comp_d.LR : closure;
+import comp_d.LR0ItemSet, comp_d.LR1ItemSet, comp_d.LRTable, comp_d.tool, comp_d.data;
 import std.typecons;
+import std.array, std.container, std.container.binaryheap;
+import std.algorithm, std.algorithm.comparison;
+import std.stdio: writeln, write;
+
+// grammars that passed to these functions must be augmented.
+
+unittest{
+    writeln("## LALR unittest 1");
+}
+
+LR0ItemSet lookaheads(LR0ItemSet item_set) {
+    auto result = new LR0ItemSet();
+    return result;
+}
+
+// grammar_info.grammar is supposed to be augmented when passed to this function.
+// Then grammar_info.grammar[$-1] is [S' -> S]
+// and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
+// This considers the conflict.
+LRTableInfo LALRtableInfo(inout const GrammarInfo grammar_info) {
+    auto result = SLRtableInfo(grammar_info);
+    auto state_num = result.state_num;
+    
+    // 
+    auto propagates = new SymbolSet[state_num];
+    
+    // inner-generate
+    
+    
+    return result;
+}
+
 /+
-struct Item {
-	ulong num; int index; Symbol sym;
-}
-
-alias ItemSet = bool[Item];
-
-// item = A -> X.YZ
-// item.rule = tuple(A, [X,Y,Z]), intem.index = 1
-
-@property Grammar augument(Grammar grammar) {
-	auto start_ = grammar.sym_num;
-	return grammar ~ [tuple(start_, [0])];
-}
-
-
-
-ItemSet closure(Grammar grammar, ItemSet items) {
-	auto result = items;
-	
-	while (true) {
-		bool end = true;
-		
-		foreach(item; result.byKey) {
-			// A -> α. (the dot is placed at the last)
-			if (item.index >= grammar[item.num][1].length) continue;
-			
-			// item = A -> α.Bβ, symbol = B
-			auto symbol = grammar[item.num][1][item.index];
-			
-			foreach (num, rule; grammar) {
-				
-				// i = B -> .γ
-				Item i;
-				
-				if (rule[0] == symbol) i.num = num, i.index = 0;
-				else continue;
-				
-				// if i is not in result, add it
-				if (i in result) continue;
-				// still can add some items
-				else result[i] = true, end = false;
-			}
-			
-		}
-		
-		if (end) break;
-		
-	}
-	return items;
-}
-
-ItemSet _goto(Grammar grammar, ItemSet items, Symbol symbol) {
-	ItemSet result;
-	foreach (item; items.byKey) {
-		// A -> α. (the dot is placed at the last)
-		if (item.index >= grammar[item.num][1].length) continue;
-		
-		// A -> α.Xβ,  X == symbol
-		if (grammar[item.num][1][item.index] != symbol) continue;
-		
-		// add all the element of closure( {[A -> αX.β]} );
-		item.index++;
-		foreach (i; grammar.closure([item: true]).byKey) {
-			result[i] = true;
-		}
-	}
-	return result;
-}
-
-ItemSet closure1(Grammar grammar, ItemSet items, bool[][Symbol] first_table) {
-	auto result = items;
-	auto sym_num = grammar.sym_num;
-	
-	while (true) {
-		bool end = true;
-		
-		foreach(item; result.byKey) {
-			// A -> α.,a : (the dot is placed at the last)
-			if (item.index >= grammar[item.num][1].length) continue;
-			
-			// item = A -> α.Bβ,a : symbol = B
-			auto symbol = grammar[item.num][1][item.index];
-			
-			foreach (num, rule; grammar) foreach (b; first_list(grammar, grammar[item.num][1][item.index+1 .. $] ~ item.sym , first_table) ) {
-				// i = B -> .γ,b
-				// ε ≠ b ∈ FIRST(βa)
-				
-				Item i;
-				
-				if (rule[0] == symbol && b != empty_) i.num = num, i.index = 0, i.sym = b;
-				else continue;
-				
-				// if i is not in result, add it
-				if (i in result) continue;
-				// still can add some items
-				else result[i] = true, end = false;
-			}
-			
-		}
-		
-		if (end) break;
-		
-	}
-	return items;
-}
-
-
-// make the LR table
-LRTable LALRtable(Grammar grammar_) {
-	
-	auto grammar = grammar_.dup();
-	auto sym_num = grammar.sym_num;
-	auto nonterminal = grammar.nonterminal;
-	auto is_term    = (Symbol x) => x>=0 &&  !canFind(nonterminal, x);
-	
-	grammar = grammar.augument;
-	auto first_table = grammar.first();
-	
-	
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	// make the canonical LR(0) collection
-	
-	Item _itm = { grammar.length-1, 0, end_of_file };
-	ItemSet[] collection_ = [ grammar.closure( [_itm: true]) ] ;
-	ulong[][Symbol] goto_map;
-	foreach (symbol; 0 .. sym_num+1) { goto_map[symbol] = []; }
-	
-	while(true) {
-		bool end = true;
-		
-		// for each items in result and each grammatical symbol symbol,
-		// if goto(items, symbol) is not empty and is not contained in result,
-		// then add it
-		foreach (state, items; collection_) foreach (symbol; 0 .. sym_num+1) {
-			if (goto_map[symbol].length <= state) goto_map[symbol].length = state+1, goto_map[symbol][$-1] = -1;
-			
-			auto i = grammar._goto(items, symbol);
-			auto num = countUntil(collection_, i);
-			if (i.length != 0 && num == -1) {
-				collection_ ~= i;
-				end = false;
-			}
-			else if (i.length != 0) { goto_map[symbol][state] = num; } // goto(state, symbol) = num
-		
-		}
-		
-		if (end) break;
-		
-	}
-	
-	auto collection = collection_;
-	
-	// determine lookahead
-	bool is_kernel(Item item) {
-		return (item.num == grammar.length-1 && item.index == 0) || item.index != 0;
-	}
-	
-	Item[][Item] propagate;	// lookahead[i] = j ... i -> j
-	bool[Symbol][Item] lookaheads;
-	
-	_itm.sym = virtual;
-	lookaheads[_itm][end_of_file] = true;	// S' -> .S, $
-	Item[] kernel_items;
-	
-	foreach (items; collection) foreach (item; items.byKey) {
-		if (!is_kernel(item)) continue;
-		kernel_items ~= item;
-		
-		auto it = item; it.sym = virtual;
-		auto j = closure1(grammar, [it: true], first_table);
-		
-		foreach (i; j.byKey) {
-			// . is at the end
-			if (i.index >= grammar[i.num][1].length) continue;
-			
-			if (i.sym != virtual) { auto i_ = i; i_.sym = virtual, i_.index++; lookaheads[i_][i.sym] = true; }
-			else { i.index++; item.sym = virtual, propagate[item] ~= i; }
-		}
-		
-	}
-	
-	
-	// propagate
-	while (true) {
-		bool end = true;
-		
-		foreach (from; kernel_items) {
-			from.sym = virtual;
-			// do not propagate to anywhere
-			if (from !in propagate) continue;
-			
-			foreach (to_; propagate[from]) {
-				to_.sym = virtual;
-				// no lookahead symbol
-				if (from !in lookaheads) continue;
-				
-				foreach (symbol; lookaheads[from].byKey) {
-					if (to_ !in lookaheads || symbol !in lookaheads[to_]) { lookaheads[to_][symbol] = true, end = false; }
-				}
-			}
-		}
-		
-		if (end) break;
-	}
-	
-	
-	//writeln(lookaheads);
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	
-	
-	//writeln(collection);
-	
-	// result[symbol][state]
-	LRTable result;
-	foreach (symbol; 0 .. sym_num) { result[symbol].length = collection.length; }
-	result[end_of_file].length = collection.length;
-	
-	void set(Symbol symbol, ulong state, LREntry entry) {
-		//writeln(symbol, " ", state, " ", entry);
-		if (result[symbol][state][0] == Action.error || result[symbol][state] == entry)  result[symbol][state] = entry;
-		// if shift/reduce conflict happens, solve it by replacing shift for reduce
-		// (for solving if-else problem)
-		else if (result[symbol][state][0] == Action.reduce && entry[0] == Action.shift) result[symbol][state] = entry;
-		else { writeln("Error: symbol = ", symbol, ", state = ", state, ", entry = ", entry, ", result[symbol][state] = ", result[symbol][state], "\n This grammar is not SLR" ); /+ error +/ }
-	}
-	
-	foreach ( ulong state; 0 .. collection.length ) {
-	
-		foreach ( item; collection[state].byKey ) {
-		
-			// A -> α.aβ,b :  where a is a terminal symbol
-			// goto(state, a) = j
-			// action[state, a] = shift j
-			if (item.index < grammar[item.num][1].length) {
-				auto to_ = goto_map[grammar[item.num][1][item.index]][state];
-				if (is_term(grammar[item.num][1][item.index])) set(grammar[item.num][1][item.index], state, tuple(Action.shift, to_));
-			}
-			
-			// A -> α.,a :  A is not S'
-			// action[state, a] = reduce A -> α
-			else if (grammar[item.num][0] != sym_num ) {
-				item.sym = virtual;
-				if (item in lookaheads) foreach (symbol; lookaheads[item].byKey) {
-					set(symbol, state, tuple(Action.reduce, item.num) );
-				}
-			}
-			
-			// S' -> S., $
-			else {
-				item.sym = virtual;
-				if(item in lookaheads && end_of_file in lookaheads[item]) { set(end_of_file, state, tuple(Action.accept, 0uL)); }
-			}
-		}
-		
-		foreach ( symbol; nonterminal ) {
-			auto to_ = goto_map[symbol][state];
-			if (to_ == -1) { continue; }
-			set(symbol, state, tuple(Action.goto_, to_));
-		}
-		
-	}
-	
-	return result;
+// grammar_info.grammar is supposed to be augmented when passed to this function.
+// Then grammar_info.grammar[$-1] is [S' -> S]
+// and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
+// This considers the conflict.
+LRTableInfo LALRtableInfo(inout const GrammarInfo grammar_info) {
+    auto collection = canonicalLR0Collection(grammar_info);
+    auto result = new LRTableInfo(collection.length, grammar_info.max_symbol_num);
+    auto grammar = grammar_info.grammar;
+    
+    foreach (i, item_set; collection) {
+        foreach (item; item_set.array) {
+            auto rule = grammar[item.num];
+            // item is  [X -> s.At]
+            if (item.index < rule.rhs.length) {
+                auto sym  = rule.rhs[item.index];
+                // ignore empty
+                if (sym < 0) continue;
+                
+                // goto(item_set, A) = item_set2
+                auto item_set2 = _goto(grammar_info, item_set, sym);
+                if (item_set2.cardinal == 0) continue;
+                
+                auto j = collection.countUntil(_goto(grammar_info, item_set, sym));
+                // [i, sym] = goto j
+                if (sym in grammar_info.nonterminals) result.add( LREntry(Action.goto_, j), i, sym );   // As goto is empty if . is at the end
+                else                                  result.add( LREntry(Action.shift, j), i, sym );
+            }
+            // item is [X -> s.]
+            else {
+                // X is not S'
+                if (rule.lhs != grammar_info.start_sym)
+                    foreach (sym; grammar_info.follow(rule.lhs).array)
+                        result.add( LREntry(Action.reduce, item.num), i, sym );
+                // X = S'
+                else
+                   result.add( LREntry(Action.accept, 0), i, end_of_file_ );
+            }
+        }
+    }
+    
+    return result;
 }
 +/
+/+
+// When conflict occurs, one can use this function to see where the conflict occurs
+void showLALRtableInfo(inout const GrammarInfo grammar_info) {
+    auto grammar = grammar_info.grammar;
+    auto collection = canonicalLR0Collection(grammar_info);
+    // show the collection
+    foreach (k, item_set; collection.array) {
+        // write item
+        writeln("ITEM-", k, " = {");
+        foreach (item; item_set.array) {
+            auto rule = grammar[item.num];
+            if (item.num == grammar.length-1) write("\t\033[1m\033[31m", item.num, "\033[0m");
+            else write("\t", item.num);
+            write(": [", grammar_info.nameOf(rule.lhs), "  ->  ");
+            foreach (l; 0 .. item.index)               write(grammar_info.nameOf(rule.rhs[l]), " ");
+            write("\b\033[1m\033[37m.\033[0m");
+            foreach (l; item.index .. rule.rhs.length) write(grammar_info.nameOf(rule.rhs[l]), " ");
+            writeln("], ");
+        }
+        writeln("},");
+    }
+    // show the table
+    auto table_info = SLRtableInfo(grammar_info);
+    auto table = table_info.table;
+    auto symbols_array = grammar_info.terminals.array ~ [end_of_file_] ~ grammar_info.nonterminals.array[0 .. $-1] ;
+    foreach (sym; symbols_array) {
+        write("\t", grammar_info.nameOf(sym));
+    }
+    writeln();
+    
+    alias Index2 = Tuple!(State, "state", Symbol, "symbol");
+    Index2[] conflictings;
+    
+    foreach (i; 0 .. table.state_num) {
+        write(i, ":\t");
+        foreach (sym; symbols_array) {
+            auto act = table[i, sym].action;
+            // conflict
+            if (table_info[i, sym].cardinal > 1) { write("\033[1m\033[31mcon\033[0m, \t"); conflictings ~= Index2(i, sym); }
+            else if (act == Action.error)  { write("err, \t"); }
+            else if (act == Action.accept) { write("\033[1m\033[37macc\033[0m, \t"); }
+            else if (act == Action.shift)  { write("\033[1m\033[36ms\033[0m-", table[i, sym].num, ", \t"); }
+            else if (act == Action.reduce) { write("\033[1m\033[33mr\033[0m-", table[i, sym].num, ", \t"); }
+            else if (act == Action.goto_)  { write("\033[1m\033[32mg\033[0m-", table[i, sym].num, ", \t"); }
+        }
+        writeln();
+    }
+    
+    foreach (index2; conflictings) {
+        auto i = index2.state; auto sym = index2.symbol;
+        write("action[", i, ", ", grammar_info.nameOf(sym), "] : ");
+        foreach (entry; table_info[i, sym].array) {
+            auto act = entry.action;
+            if      (act == Action.error)  { write("err, "); }
+            else if (act == Action.accept) { write("\033[1m\033[37macc\033[0m, "); }
+            else if (act == Action.shift)  { write("\033[1m\033[36ms\033[0m-", entry.num, ", "); }
+            else if (act == Action.reduce) { write("\033[1m\033[33mr\033[0m-", entry.num, ", "); }
+            else if (act == Action.goto_)  { write("\033[1m\033[32mg\033[0m-", entry.num, ", "); }
+        }
+        writeln();
+    }
+}+/
