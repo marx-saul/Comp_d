@@ -127,9 +127,10 @@ LRTableInfo LRtableInfo(const GrammarInfo grammar_info, const LR1ItemSet[] colle
             if (item.index < rule.rhs.length) {
                 auto sym  = rule.rhs[item.index];
                 // if empty, i.e. [A -> .ε], then action[i,a] = reduce for all a in FOLLOW(A)
-                if (sym == empty_)
+                if (sym == empty_) {
                     result.add( LREntry(Action.reduce, item.num), i, item.lookahead );
-                
+                    continue;
+                }
                 
                 // goto(item_set, A) = item_set2
                 auto item_set2 = _goto(grammar_info, item_set, sym);

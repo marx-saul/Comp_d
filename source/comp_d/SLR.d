@@ -218,10 +218,11 @@ LRTableInfo SLRtableInfo(const GrammarInfo grammar_info, const LR0ItemSet[] coll
             if (item.index < rule.rhs.length) {
                 auto sym  = rule.rhs[item.index];
                 // if empty, i.e. [A -> .ε], then action[i,a] = reduce for all a in FOLLOW(A)
-                if (sym == empty_)
+                if (sym == empty_) {
                     foreach (sym2; grammar_info.follow(rule.lhs).array)
                         result.add( LREntry(Action.reduce, item.num), i, sym2 );
-                
+                    continue;
+                }
                 
                 // goto(item_set, A) = item_set2
                 auto item_set2 = _goto(grammar_info, item_set, sym);

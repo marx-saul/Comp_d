@@ -1,6 +1,6 @@
 module comp_d.LALR;
 
-import comp_d.SLR: _goto, canonicalLR0Collection, SLRtableInfo;
+import comp_d.SLR: canonicalLR0Collection, SLRtableInfo;
 import comp_d.LR : closure;
 import comp_d.LR0ItemSet, comp_d.LR1ItemSet, comp_d.LRTable;
 import comp_d.Set, comp_d.tool, comp_d.data;
@@ -74,7 +74,7 @@ LookAheadSet Propagates(const GrammarInfo grammar_info, const LR0ItemSet[] colle
     // calculate all propagates and inner-generates(initialize to lookahead)
     foreach (i, item_set; collection) foreach (j, kernel_item; item_set.array) {
         if (!isKernel(kernel_item)) continue;
-        //writeln(i, ", ", j, ":");
+        
         // calculate the LR1-closure of each kernel item in LR0-collection with lookahead #.
         auto lookahead_item_set = closure(grammar_info, new LR1ItemSet(LR1Item(kernel_item.num, kernel_item.index, virtual)) );
         foreach (LR1item; lookahead_item_set.array) {
@@ -89,23 +89,13 @@ LookAheadSet Propagates(const GrammarInfo grammar_info, const LR0ItemSet[] colle
             auto index_of_item_j = countUntil(collection[index_of_item_i].array, item);
             auto index_of_item = Index2(index_of_item_i, index_of_item_j);
             
-            //writeln("\t", index_of_item.i, ", ", index_of_item.j, ", ", grammar_info.nameOf(LR1item.lookahead));
             // propagate
             if (LR1item.lookahead == virtual) { propagate_set[i][j] ~= index_of_item; }
             // inner-generate
             else { lookaheads.add( LookAhead(index_of_item.i, index_of_item.j, LR1item.lookahead) ); }
         }
     }
-    /*
-    // show
-    foreach(i; 0 .. collection.length) foreach (j; 0 .. collection[i].cardinal) {
-        writeln("(", i, ", ", j, "):");
-        foreach (index2; propagate_set[i][j])
-            writeln("\t(", index2.i, ", ", index2.j, ")");
-    }
-    foreach(la; lookaheads.array) writeln("(", la.i, ", ", la.j, "), ", grammar_info.nameOf(la.symbol));
-    writeln();
-    */
+    
     // execute propagates until there is nothing to.
     while (true) {
         auto previous_cardinal = lookaheads.cardinal;
@@ -120,8 +110,6 @@ LookAheadSet Propagates(const GrammarInfo grammar_info, const LR0ItemSet[] colle
         // nothing was added.
         if (lookaheads.cardinal == previous_cardinal) break;
     }
-    
-    //foreach(la; lookaheads.array) writeln("(", la.i, ", ", la.j, "), ", grammar_info.nameOf(la.symbol));
     
     return lookaheads;
 }
@@ -141,8 +129,6 @@ LRTableInfo LALRtableInfo(const GrammarInfo grammar_info, const LR0ItemSet[] col
     
     foreach (entry_index; result.conflictings) {
         auto state = entry_index.state, symbol = entry_index.symbol;
-        writeln(lookaheads_array.filter!(a => a.i == state), "\n", lookaheads_array.filter!(a => a.i == state).array);
-        writeln(result.table[state, symbol]);
         // solve the shift/reduce confliction
         if ( result.table[state, symbol].action == Action.shift
           && lookaheads_array.filter!(a => a.i == state).all!(a => a.symbol != symbol) )

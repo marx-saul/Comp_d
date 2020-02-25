@@ -45,7 +45,7 @@ class LRTable {
         size_t access = void;
         if      (symbol == -2) access = 0;
         else if ( !( (0 <= symbol) && (symbol <= max_symbol_number) ) )
-            assert(0, "\033[1m\033[32mBug that should be fixed. LRTable.opIndex( ..., " ~ to!string(symbol) ~ " )\033[0m");
+            assert(0, "Bug that should be fixed. LRTable.opIndex( ..., " ~ to!string(symbol) ~ " )");
         else                   access = symbol+1;
         return access;
     }
