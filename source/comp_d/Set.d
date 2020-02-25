@@ -50,6 +50,8 @@ unittest {
     writeln("## Set unittest 2");
 }
 +/
+
+// Set wrapper for AATree
 class Set(T, alias less = (a,b)=>a<b)
     if ( is(typeof(less(T.init, T.init))) )
 {
@@ -68,7 +70,7 @@ class Set(T, alias less = (a,b)=>a<b)
     }
     
     // array, cardinal
-    public inout(T)[] array() @property inout {
+    public inout(T)[] array() @property inout const {
         return aat.array;
     }
     public size_t cardinal() @property inout {
@@ -87,7 +89,7 @@ class Set(T, alias less = (a,b)=>a<b)
     public bool opBinaryRight(string op)(inout T elem) inout
         if (op == "in")
     {
-        return aat.hasValue(elem);
+        return aat.hasKey(elem);
     }
     
     // "in" overload (containment)

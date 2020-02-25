@@ -91,7 +91,7 @@ class GrammarInfo {
     public Grammar grammar;
     private bool augment_flag;
     private string[] symbol_name_dictionary;
-    public  string nameOf(Symbol sym) inout {
+    public  string nameOf(inout const Symbol sym) inout {
         if      (sym == virtual)      return "#";
         else if (sym == end_of_file_) return "$";
         else if (sym == empty_)       return "ε";

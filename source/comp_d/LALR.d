@@ -1,8 +1,10 @@
 module comp_d.LALR;
 
-import comp_d.SLR: closure, _goto, canonicalLR0Collection, SLRtableInfo;
+import comp_d.SLR: _goto, canonicalLR0Collection, SLRtableInfo;
 import comp_d.LR : closure;
-import comp_d.LR0ItemSet, comp_d.LR1ItemSet, comp_d.LRTable, comp_d.tool, comp_d.data;
+import comp_d.LR0ItemSet, comp_d.LR1ItemSet, comp_d.LRTable;
+import comp_d.Set, comp_d.tool, comp_d.data;
+
 import std.typecons;
 import std.array, std.container, std.container.binaryheap;
 import std.algorithm, std.algorithm.comparison;
@@ -11,78 +13,150 @@ import std.stdio: writeln, write;
 // grammars that passed to these functions must be augmented.
 
 unittest{
+    enum : Symbol {
+        S, L, R, eq, star, id
+    }
+    auto grammar_info = new GrammarInfo(grammar(
+        rule(S, L, eq, R),
+        rule(S, R),
+        rule(L, star, R),
+        rule(L, id),
+        rule(R, L),
+    ), ["S", "L", "R", "=", "*", "id"]);
+    
+    import comp_d.SLR: showSLRtableInfo;
+    showLALRtableInfo(grammar_info);
+    //LALRtableInfo(grammar_info);
     writeln("## LALR unittest 1");
 }
 
-LR0ItemSet lookaheads(LR0ItemSet item_set) {
-    auto result = new LR0ItemSet();
-    return result;
-}
+alias LookAhead = Tuple!(size_t, "i", size_t, "j", Symbol, "symbol");
+alias LookAheadSet = Set!(LookAhead, (a,b) => a.i < b.i || (a.i == b.i && a.j < b.j) || (a.i == b.i && a.j == b.j && a.symbol < b.symbol));
 
 // grammar_info.grammar is supposed to be augmented when passed to this function.
 // Then grammar_info.grammar[$-1] is [S' -> S]
 // and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
 // This considers the conflict.
-LRTableInfo LALRtableInfo(inout const GrammarInfo grammar_info) {
-    auto result = SLRtableInfo(grammar_info);
-    auto state_num = result.state_num;
-    
-    // 
-    auto propagates = new SymbolSet[state_num];
-    
-    // inner-generate
-    
-    
-    return result;
-}
-
-/+
-// grammar_info.grammar is supposed to be augmented when passed to this function.
-// Then grammar_info.grammar[$-1] is [S' -> S]
-// and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
-// This considers the conflict.
-LRTableInfo LALRtableInfo(inout const GrammarInfo grammar_info) {
-    auto collection = canonicalLR0Collection(grammar_info);
-    auto result = new LRTableInfo(collection.length, grammar_info.max_symbol_num);
+LookAheadSet Propagates(const GrammarInfo grammar_info, const LR0ItemSet[] collection, const LRTableInfo table) {
     auto grammar = grammar_info.grammar;
     
-    foreach (i, item_set; collection) {
-        foreach (item; item_set.array) {
-            auto rule = grammar[item.num];
-            // item is  [X -> s.At]
-            if (item.index < rule.rhs.length) {
-                auto sym  = rule.rhs[item.index];
-                // ignore empty
-                if (sym < 0) continue;
-                
-                // goto(item_set, A) = item_set2
-                auto item_set2 = _goto(grammar_info, item_set, sym);
-                if (item_set2.cardinal == 0) continue;
-                
-                auto j = collection.countUntil(_goto(grammar_info, item_set, sym));
-                // [i, sym] = goto j
-                if (sym in grammar_info.nonterminals) result.add( LREntry(Action.goto_, j), i, sym );   // As goto is empty if . is at the end
-                else                                  result.add( LREntry(Action.shift, j), i, sym );
-            }
-            // item is [X -> s.]
-            else {
-                // X is not S'
-                if (rule.lhs != grammar_info.start_sym)
-                    foreach (sym; grammar_info.follow(rule.lhs).array)
-                        result.add( LREntry(Action.reduce, item.num), i, sym );
-                // X = S'
-                else
-                   result.add( LREntry(Action.accept, 0), i, end_of_file_ );
+    // kernel item is [S' -> .S] or an item whose dot is not at the start.
+    bool isKernel (const LR0Item item) {
+        return item == LR0Item(grammar.length-1, 0) || item.index > 0;
+    }
+    
+    /*********************/
+    // In this function, (i,j) refers to collection[i].array[j]
+    /*********************/
+    alias Index2 = Tuple!(size_t, "i", size_t, "j");
+    
+    // propagate_set[i][j] = { (i,j) } is the propagation item sets of collection[i].array[j]
+    Index2[][][] propagate_set;
+    
+    Index2 indexOf(const LR0Item item) {
+        foreach (i, item_set; collection) foreach (j, item2; item_set.array)
+            if (item == item2) return Index2(i, j);
+        assert(0);
+    }
+    
+    // initialization
+    propagate_set.length = collection.length;
+    foreach (i; 0 .. collection.length) {
+        propagate_set[i].length = collection[i].cardinal;
+    }
+    
+    // (i, j, symbol) means that symbol have propagation symbol
+    // add [S' -> .S], $
+    auto tmp_ind = indexOf(LR0Item(grammar.length-1, 0));
+    auto lookaheads = new LookAheadSet( LookAhead(tmp_ind.i, tmp_ind.j, end_of_file_) );
+    
+    
+    // calculate all propagates and inner-generates(initialize to lookahead)
+    foreach (i, item_set; collection) foreach (j, kernel_item; item_set.array) {
+        if (!isKernel(kernel_item)) continue;
+        //writeln(i, ", ", j, ":");
+        // calculate the LR1-closure of each kernel item in LR0-collection with lookahead #.
+        auto lookahead_item_set = closure(grammar_info, new LR1ItemSet(LR1Item(kernel_item.num, kernel_item.index, virtual)) );
+        foreach (LR1item; lookahead_item_set.array) {
+            // . is at the last
+            if (LR1item.index >= grammar[LR1item.num].rhs.length) continue;
+            // ignore [A -> .ε]
+            if (grammar[LR1item.num].rhs[LR1item.index] == empty_) continue;
+            
+            auto item = LR0Item(LR1item.num, LR1item.index+1);
+            // for [A -> s.Bu] in I = item_set, propagate or inner-generate to [A -> sB.u] in goto(I,B).
+            auto index_of_item_i = table.table[i, grammar[LR1item.num].rhs[LR1item.index]].num;
+            auto index_of_item_j = countUntil(collection[index_of_item_i].array, item);
+            auto index_of_item = Index2(index_of_item_i, index_of_item_j);
+            
+            //writeln("\t", index_of_item.i, ", ", index_of_item.j, ", ", grammar_info.nameOf(LR1item.lookahead));
+            // propagate
+            if (LR1item.lookahead == virtual) { propagate_set[i][j] ~= index_of_item; }
+            // inner-generate
+            else { lookaheads.add( LookAhead(index_of_item.i, index_of_item.j, LR1item.lookahead) ); }
+        }
+    }
+    /*
+    // show
+    foreach(i; 0 .. collection.length) foreach (j; 0 .. collection[i].cardinal) {
+        writeln("(", i, ", ", j, "):");
+        foreach (index2; propagate_set[i][j])
+            writeln("\t(", index2.i, ", ", index2.j, ")");
+    }
+    foreach(la; lookaheads.array) writeln("(", la.i, ", ", la.j, "), ", grammar_info.nameOf(la.symbol));
+    writeln();
+    */
+    // execute propagates until there is nothing to.
+    while (true) {
+        auto previous_cardinal = lookaheads.cardinal;
+        foreach (lookahead; lookaheads.array) {
+            auto i = lookahead.i, j = lookahead.j, symbol = lookahead.symbol;
+            // execute propagate (propagate_set[i][j] is the set of items where the lookahead propagate.)
+            foreach (index2; propagate_set[i][j]) {
+                lookaheads.add(LookAhead(index2.i, index2.j, lookahead.symbol));
+                //writeln(i, " ", j, " to ", index2.i, " ", index2.j);
             }
         }
+        // nothing was added.
+        if (lookaheads.cardinal == previous_cardinal) break;
+    }
+    
+    //foreach(la; lookaheads.array) writeln("(", la.i, ", ", la.j, "), ", grammar_info.nameOf(la.symbol));
+    
+    return lookaheads;
+}
+
+// grammar_info.grammar is supposed to be augmented when passed to this function.
+// Then grammar_info.grammar[$-1] is [S' -> S]
+// and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
+// This considers the conflict.
+LRTableInfo LALRtableInfo(const GrammarInfo grammar_info) {
+    return LALRtableInfo(grammar_info, canonicalLR0Collection(grammar_info));
+}
+
+LRTableInfo LALRtableInfo(const GrammarInfo grammar_info, const LR0ItemSet[] collection) {
+    auto result = SLRtableInfo(grammar_info, collection);
+    auto lookaheads = Propagates(grammar_info, collection, result);
+    auto lookaheads_array = lookaheads.array;
+    
+    foreach (entry_index; result.conflictings) {
+        auto state = entry_index.state, symbol = entry_index.symbol;
+        writeln(lookaheads_array.filter!(a => a.i == state), "\n", lookaheads_array.filter!(a => a.i == state).array);
+        writeln(result.table[state, symbol]);
+        // solve the shift/reduce confliction
+        if ( result.table[state, symbol].action == Action.shift
+          && lookaheads_array.filter!(a => a.i == state).all!(a => a.symbol != symbol) )
+        {
+            // determine to shift
+            result[state, symbol] = result.table[state, symbol];
+        }   
     }
     
     return result;
 }
-+/
-/+
+
 // When conflict occurs, one can use this function to see where the conflict occurs
-void showLALRtableInfo(inout const GrammarInfo grammar_info) {
+void showLALRtableInfo(const GrammarInfo grammar_info) {
     auto grammar = grammar_info.grammar;
     auto collection = canonicalLR0Collection(grammar_info);
     // show the collection
@@ -101,24 +175,21 @@ void showLALRtableInfo(inout const GrammarInfo grammar_info) {
         }
         writeln("},");
     }
+    
     // show the table
-    auto table_info = SLRtableInfo(grammar_info);
+    auto table_info = LALRtableInfo(grammar_info, collection);
     auto table = table_info.table;
     auto symbols_array = grammar_info.terminals.array ~ [end_of_file_] ~ grammar_info.nonterminals.array[0 .. $-1] ;
     foreach (sym; symbols_array) {
         write("\t", grammar_info.nameOf(sym));
     }
     writeln();
-    
-    alias Index2 = Tuple!(State, "state", Symbol, "symbol");
-    Index2[] conflictings;
-    
     foreach (i; 0 .. table.state_num) {
         write(i, ":\t");
         foreach (sym; symbols_array) {
             auto act = table[i, sym].action;
             // conflict
-            if (table_info[i, sym].cardinal > 1) { write("\033[1m\033[31mcon\033[0m, \t"); conflictings ~= Index2(i, sym); }
+            if (table_info.is_conflicting(i, sym)) { write("\033[1m\033[31mcon\033[0m, \t"); }
             else if (act == Action.error)  { write("err, \t"); }
             else if (act == Action.accept) { write("\033[1m\033[37macc\033[0m, \t"); }
             else if (act == Action.shift)  { write("\033[1m\033[36ms\033[0m-", table[i, sym].num, ", \t"); }
@@ -127,8 +198,8 @@ void showLALRtableInfo(inout const GrammarInfo grammar_info) {
         }
         writeln();
     }
-    
-    foreach (index2; conflictings) {
+    //writeln(table_info.is_conflict);
+    foreach (index2; table_info.conflictings) {
         auto i = index2.state; auto sym = index2.symbol;
         write("action[", i, ", ", grammar_info.nameOf(sym), "] : ");
         foreach (entry; table_info[i, sym].array) {
@@ -141,4 +212,4 @@ void showLALRtableInfo(inout const GrammarInfo grammar_info) {
         }
         writeln();
     }
-}+/
+}

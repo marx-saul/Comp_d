@@ -114,7 +114,7 @@ unittest {
 */
 
 // return closure
-LR0ItemSet closure(inout const GrammarInfo grammar_info, inout LR0ItemSet item_set) {
+LR0ItemSet closure(const GrammarInfo grammar_info, inout LR0ItemSet item_set) {
     auto result = new LR0ItemSet( (cast(LR0ItemSet) item_set).array);
     auto grammar = grammar_info.grammar;
     
@@ -150,7 +150,7 @@ LR0ItemSet closure(inout const GrammarInfo grammar_info, inout LR0ItemSet item_s
     return result;
 }
 
-LR0ItemSet _goto(inout const GrammarInfo grammar_info, inout LR0ItemSet item_set, inout Symbol symbol) {
+LR0ItemSet _goto(const GrammarInfo grammar_info, inout LR0ItemSet item_set, inout Symbol symbol) {
     auto result = new LR0ItemSet();
     // goto(item_set, symbol) is defined to be the closure of all items [A -> sX.t]
     // such that X = symbol and [A -> s.Xt] is in item_set.
@@ -166,7 +166,7 @@ LR0ItemSet _goto(inout const GrammarInfo grammar_info, inout LR0ItemSet item_set
 // grammar_info.grammar is supposed to be augmented when passed to this function.
 // Then grammar_info.grammar[$-1] is [S' -> S]
 // and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
-LR0ItemSet[] canonicalLR0Collection(inout const GrammarInfo grammar_info) {
+LR0ItemSet[] canonicalLR0Collection(const GrammarInfo grammar_info) {
     auto item_set_0 = grammar_info.closure( new LR0ItemSet(LR0Item(grammar_info.grammar.length-1,0)) );
     auto result = new LR0ItemSetSet (item_set_0);
     
@@ -204,7 +204,10 @@ LR0ItemSet[] canonicalLR0Collection(inout const GrammarInfo grammar_info) {
 // and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
 // This considers the conflict.
 LRTableInfo SLRtableInfo(inout const GrammarInfo grammar_info) {
-    auto collection = canonicalLR0Collection(grammar_info);
+    return SLRtableInfo(grammar_info, canonicalLR0Collection(grammar_info));
+}
+
+LRTableInfo SLRtableInfo(const GrammarInfo grammar_info, const LR0ItemSet[] collection) {
     auto result = new LRTableInfo(collection.length, grammar_info.max_symbol_num);
     auto grammar = grammar_info.grammar;
     
@@ -214,8 +217,11 @@ LRTableInfo SLRtableInfo(inout const GrammarInfo grammar_info) {
             // item is  [X -> s.At]
             if (item.index < rule.rhs.length) {
                 auto sym  = rule.rhs[item.index];
-                // ignore empty
-                if (sym < 0) continue;
+                // if empty, i.e. [A -> .ε], then action[i,a] = reduce for all a in FOLLOW(A)
+                if (sym == empty_)
+                    foreach (sym2; grammar_info.follow(rule.lhs).array)
+                        result.add( LREntry(Action.reduce, item.num), i, sym2 );
+                
                 
                 // goto(item_set, A) = item_set2
                 auto item_set2 = _goto(grammar_info, item_set, sym);
@@ -243,7 +249,7 @@ LRTableInfo SLRtableInfo(inout const GrammarInfo grammar_info) {
 }
 
 // When conflict occurs, one can use this function to see where the conflict occurs
-void showSLRtableInfo(inout const GrammarInfo grammar_info) {
+void showSLRtableInfo(const GrammarInfo grammar_info) {
     auto grammar = grammar_info.grammar;
     auto collection = canonicalLR0Collection(grammar_info);
     // show the collection
@@ -264,7 +270,7 @@ void showSLRtableInfo(inout const GrammarInfo grammar_info) {
     }
     
     // show the table
-    auto table_info = SLRtableInfo(grammar_info);
+    auto table_info = SLRtableInfo(grammar_info, collection);
     auto table = table_info.table;
     auto symbols_array = grammar_info.terminals.array ~ [end_of_file_] ~ grammar_info.nonterminals.array[0 .. $-1] ;
     foreach (sym; symbols_array) {
@@ -276,7 +282,7 @@ void showSLRtableInfo(inout const GrammarInfo grammar_info) {
         foreach (sym; symbols_array) {
             auto act = table[i, sym].action;
             // conflict
-            if (table_info[i, sym].cardinal > 1) { write("\033[1m\033[31mcon\033[0m, \t"); }
+            if (table_info.is_conflicting(i, sym)) { write("\033[1m\033[31mcon\033[0m, \t"); }
             else if (act == Action.error)  { write("err, \t"); }
             else if (act == Action.accept) { write("\033[1m\033[37macc\033[0m, \t"); }
             else if (act == Action.shift)  { write("\033[1m\033[36ms\033[0m-", table[i, sym].num, ", \t"); }

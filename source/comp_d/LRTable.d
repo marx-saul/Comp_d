@@ -76,6 +76,10 @@ class LRTableInfo {
     public  bool is_conflict() @property {
         return conflict_index_set.cardinal > 0;
     }
+    public  bool is_conflicting(State state, Symbol symbol) inout const {
+        return EntryIndex(state, symbol) in conflict_index_set;
+    }
+    
     public EntryIndex[] conflictings() @property {
         return conflict_index_set.array;
     }
@@ -121,6 +125,8 @@ class LRTableInfo {
         // conflicted
         if (table[state, symbol].action != Action.error && table[state, symbol] != value) {
             conflict_index_set.add(EntryIndex(state, symbol));
+            // when shift-reduce conflict occurs, shift is chosen. 
+            if (value.action == Action.shift) table[state, symbol] = value;
         }
         else table[state, symbol] = value;
     }

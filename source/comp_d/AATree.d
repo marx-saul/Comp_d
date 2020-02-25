@@ -14,7 +14,7 @@ unittest {
     static assert ( equal(aatree.array, [3, 4, 9]) );
     static assert ( !aatree.empty );
     static assert ( aatree.front == 3 );
-    static assert ( aatree.hasValue(9) );
+    static assert ( aatree.hasKey(9) );
     static assert ( aatree.cardinal == 3 );
     
     // run time check
@@ -22,12 +22,13 @@ unittest {
     aatree2.insert(9, -1, 2, 6);
     aatree2.remove(2, 4, 4, 10);
     assert ( equal(aatree2.array, [-1, 3, 6, 9]) );
-    assert ( aatree2.hasValue(-1) && !aatree2.hasValue(2) );
+    assert ( aatree2.hasKey(-1) && !aatree2.hasKey(2) );
     assert ( aatree2.cardinal == 4 );
     writeln("## AATree unittest 1");
 }
 
-class AATree(T, alias less = (a,b)=>a<b)
+// T is key, S is value
+class AATree(T, alias less = (a,b)=>a<b, S = bool)
     if ( is(typeof(less(T.init, T.init))) )
 {
     // if left and right are null (i.e., the node is a leaf), level = 1
@@ -39,6 +40,7 @@ class AATree(T, alias less = (a,b)=>a<b)
         T val;
         Node* left, right;
         size_t level;
+        S s;
     }
     private Node* root;
     
@@ -47,16 +49,16 @@ class AATree(T, alias less = (a,b)=>a<b)
     }
     
     // array returns the array of the elements in the ascending order
-    public inout(T)[] array() @property inout {
+    public inout(T)[] array() @property inout const {
         return array_(cast(inout(Node*)) root);
     }
-    private inout(T)[] array_(inout(Node*) node) inout {
+    private inout(T)[] array_(inout(Node*) node) inout const {
         if (node == null) return [];
         return array_(node.left) ~ [node.val] ~ array_(node.right);
     }
     // array.length
     private size_t cardinal_;
-    public size_t cardinal() @property inout {
+    public size_t cardinal() @property inout const {
         return cardinal_;
     }
     
@@ -74,12 +76,12 @@ class AATree(T, alias less = (a,b)=>a<b)
         return node;
     }
     
-    private bool hasValue(inout T val, Node* node) inout {
+    private Node* hasKey(inout T val, Node* node) inout {
         while (true) {
             // not found
-            if (node == null) return false;
+            if (node == null) return null;
             // found
-            if (node.val == val) return true;
+            if (node.val == val) return node;
             
             // go left
             if      (less(val, node.val)) node = node.left;
@@ -87,8 +89,21 @@ class AATree(T, alias less = (a,b)=>a<b)
             else if (less(node.val, val)) node = node.right;
         }
     }
-    public bool hasValue(inout T val) inout {
-        return hasValue(val, cast(Node*)root);
+    public bool hasKey(inout T val) inout {
+        return hasKey(val, cast(Node*)root) != null;
+    }
+    public S getValue(inout T val) inout const {
+        return hasKey(val, cast(Node*) root).s;
+    }
+    
+    // [] overload
+    public S opIndex(T index) inout const {
+        return getValue(index);
+    }
+    // table[state, symbol]
+    public S opIndexAssign(S s, T index, Symbol symbol) {
+        insert(index, root, s);
+        return s;
     }
     
     //   left <- node -                left ->   node
@@ -128,10 +143,10 @@ class AATree(T, alias less = (a,b)=>a<b)
     }
     /////////////
     // insert
-    private Node* insert(T val, Node* node) {
+    private Node* insert(T val, Node* node, S s = S.init) {
         if      (node == null) {
             auto new_node = new Node();
-            new_node.val = val, new_node.level = 1; 
+            new_node.val = val, new_node.level = 1, new_node.s = s; 
             cardinal_++;
             return new_node;
         }
@@ -140,6 +155,9 @@ class AATree(T, alias less = (a,b)=>a<b)
         }
         else if (less(node.val, val)) {
             node.right = insert(val, node.right);
+        }
+        else {
+            node.s = s;
         }
         node = skew (node);
         node = split(node);

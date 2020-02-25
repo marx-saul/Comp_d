@@ -10,7 +10,7 @@ import std.conv: to;
 // grammars that passed to the functions must be augmented.
 
 unittest {
-    enum : Symbol {
+    /*enum : Symbol {
         S, C, c, d
     }
     auto grammar_info = new GrammarInfo(grammar(
@@ -18,12 +18,22 @@ unittest {
         rule(C, c, C),
         rule(C, d),
     ), ["S", "C", "c", "d"]);
-    
+    */
+    enum : Symbol {
+        S, L, R, eq, star, id
+    }
+    auto grammar_info = new GrammarInfo(grammar(
+        rule(S, L, eq, R),
+        rule(S, R),
+        rule(L, star, R),
+        rule(L, id),
+        rule(R, L),
+    ), ["S", "L", "R", "=", "*", "id"]);
     //showLRtableInfo(grammar_info);
     writeln("## LR unittest 1");
 }
 
-LR1ItemSet closure(inout const GrammarInfo grammar_info, inout LR1ItemSet item_set) {
+LR1ItemSet closure(const GrammarInfo grammar_info, inout LR1ItemSet item_set) {
     auto result = new LR1ItemSet( (cast(LR1ItemSet) item_set).array);
     auto grammar = grammar_info.grammar;
     
@@ -50,7 +60,7 @@ LR1ItemSet closure(inout const GrammarInfo grammar_info, inout LR1ItemSet item_s
     return result;
 }
 
-LR1ItemSet _goto(inout const GrammarInfo grammar_info, inout LR1ItemSet item_set, inout Symbol symbol) {
+LR1ItemSet _goto(const GrammarInfo grammar_info, inout LR1ItemSet item_set, inout Symbol symbol) {
     auto result = new LR1ItemSet();
     // goto(item_set, symbol) is defined to be the closure of all items [A -> sX.t]
     // such that X = symbol and [A -> s.Xt] is in item_set.
@@ -66,7 +76,7 @@ LR1ItemSet _goto(inout const GrammarInfo grammar_info, inout LR1ItemSet item_set
 // grammar_info.grammar is supposed to be augmented when passed to this function.
 // Then grammar_info.grammar[$-1] is [S' -> S]
 // and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
-LR1ItemSet[] canonicalLR1Collection(inout const GrammarInfo grammar_info) {
+LR1ItemSet[] canonicalLR1Collection(const GrammarInfo grammar_info) {
     auto item_set_0 = grammar_info.closure( new LR1ItemSet(LR1Item(grammar_info.grammar.length-1, 0, end_of_file_)) );
     auto result = new LR1ItemSetSet (item_set_0);
     
@@ -98,24 +108,28 @@ LR1ItemSet[] canonicalLR1Collection(inout const GrammarInfo grammar_info) {
     }
     return result_list;
 }
-
 // grammar_info.grammar is supposed to be augmented when passed to this function.
 // Then grammar_info.grammar[$-1] is [S' -> S]
 // and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
 // This considers the conflict.
 LRTableInfo LRtableInfo(inout const GrammarInfo grammar_info) {
-    auto collection = canonicalLR1Collection(grammar_info);
+    return LRtableInfo(grammar_info, canonicalLR1Collection(grammar_info));
+}
+
+LRTableInfo LRtableInfo(const GrammarInfo grammar_info, const LR1ItemSet[] collection) {
     auto result = new LRTableInfo(collection.length, grammar_info.max_symbol_num);
     auto grammar = grammar_info.grammar;
     
     foreach (i, item_set; collection) {
         foreach (item; item_set.array) {
             auto rule = grammar[item.num];
-            // item is I_i = [X -> s.At, b]
+            // item is  [X -> s.At]
             if (item.index < rule.rhs.length) {
                 auto sym  = rule.rhs[item.index];
-                // ignore empty
-                if (sym < 0) continue;
+                // if empty, i.e. [A -> .ε], then action[i,a] = reduce for all a in FOLLOW(A)
+                if (sym == empty_)
+                    result.add( LREntry(Action.reduce, item.num), i, item.lookahead );
+                
                 
                 // goto(item_set, A) = item_set2
                 auto item_set2 = _goto(grammar_info, item_set, sym);
@@ -126,13 +140,13 @@ LRTableInfo LRtableInfo(inout const GrammarInfo grammar_info) {
                 if (sym in grammar_info.nonterminals) result.add( LREntry(Action.goto_, j), i, sym );   // As goto is empty if . is at the end
                 else                                  result.add( LREntry(Action.shift, j), i, sym );
             }
-            // item is [X -> s., b]
+            // item is [X -> s.]
             else {
                 // X is not S'
                 if (rule.lhs != grammar_info.start_sym)
                     result.add( LREntry(Action.reduce, item.num), i, item.lookahead );
-                // X = S' and b is $
-                else if (item.lookahead == end_of_file_)
+                // X = S'
+                else
                    result.add( LREntry(Action.accept, 0), i, end_of_file_ );
             }
         }
@@ -141,8 +155,9 @@ LRTableInfo LRtableInfo(inout const GrammarInfo grammar_info) {
     return result;
 }
 
+
 // When conflict occurs, one can use this function to see where the conflict occurs
-void showLRtableInfo(inout const GrammarInfo grammar_info) {
+void showLRtableInfo(const GrammarInfo grammar_info) {
     auto grammar = grammar_info.grammar;
     auto collection = canonicalLR1Collection(grammar_info);
     // show the collection
@@ -163,7 +178,7 @@ void showLRtableInfo(inout const GrammarInfo grammar_info) {
     }
     
     // show the table
-    auto table_info = LRtableInfo(grammar_info);
+    auto table_info = LRtableInfo(grammar_info, collection);
     auto table = table_info.table;
     auto symbols_array = grammar_info.terminals.array ~ [end_of_file_] ~ grammar_info.nonterminals.array[0 .. $-1] ;
     foreach (sym; symbols_array) {
@@ -175,7 +190,7 @@ void showLRtableInfo(inout const GrammarInfo grammar_info) {
         foreach (sym; symbols_array) {
             auto act = table[i, sym].action;
             // conflict
-            if (table_info[i, sym].cardinal > 1) { write("\033[1m\033[31mcon\033[0m, \t"); }
+            if (table_info.is_conflicting(i, sym)) { write("\033[1m\033[31mcon\033[0m, \t"); }
             else if (act == Action.error)  { write("err, \t"); }
             else if (act == Action.accept) { write("\033[1m\033[37macc\033[0m, \t"); }
             else if (act == Action.shift)  { write("\033[1m\033[36ms\033[0m-", table[i, sym].num, ", \t"); }
@@ -199,4 +214,3 @@ void showLRtableInfo(inout const GrammarInfo grammar_info) {
         writeln();
     }
 }
-
