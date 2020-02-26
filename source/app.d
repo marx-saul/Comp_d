@@ -2,8 +2,8 @@
 
 //import data, tool, SLR, LR, LALR;
 import comp_d;
-import std.stdio, std.ascii, std.typecons;
-import std.array, std.container;
+import std.stdio, std.typecons;
+import std.range, std.array, std.container;
 import std.algorithm, std.algorithm.comparison;
 
 void main() {
@@ -21,8 +21,8 @@ void main() {
         rule(Factor, digit),
         rule(Factor, lPar, Expr, rPar),
     ), ["Expr", "Expr'", "Term", "Term'", "Factor", "id", "+", "*", "(", ")"]);
-    Symbol[] inputs = [digit, add, lPar, digit, add, digit, mul, digit, rPar, end_of_file_];
-    showLALRtableInfo(grammar_info);
+    Symbol[] inputs = [digit, add, lPar, digit, add, digit, mul, digit, rPar];
+    //showLALRtableInfo(grammar_info);
     /+
     enum : Symbol {
         S, A, B, a, b, c, d, e
@@ -53,45 +53,9 @@ void main() {
     +/
     
     static const table_info = LALRtableInfo(grammar_info);
-    static const table = table_info.table;
-    State[] stack = [0];
-    size_t ptr;
-    
-    parse: while (true) {
-        auto state = stack[$-1];
-        //writeln(grammar_info.nameOf(inputs[ptr]), " ", state);
-        auto entry = table[state, inputs[ptr]];
-        
-        switch (entry.action) {
-        case Action.shift:
-            stack ~= entry.num;
-            ++ptr;
-            //writeln("shift  ", stack);
-        break;
-        
-        case Action.reduce:
-            auto rule = grammar_info.grammar[entry.num];
-            //writeln(entry);
-            // empty generating rule
-            if (!(rule.rhs.length == 1 && rule.rhs[0] == empty_))
-                stack.length -= rule.rhs.length;
-            auto state2 = stack[$-1];
-            if (table[state2, rule.lhs].action == Action.goto_) { stack ~= table[state2, rule.lhs].num; }
-            else { writeln("error! ", state2, " ", rule.lhs); break parse; }
-            //writeln("reduce ", entry.num, stack);
-        break;
-        
-        case Action.accept:
-            writeln("accept!!");
-        break parse;
-        
-        case Action.error:
-            writeln("error!!");
-        break parse;
-        
-        default:
-            assert(0);
-        }
-    }
+    //static int x = 0;
+    assert(0 == parse!({writeln("accept");}, (x){/+ reduce +/}, (x) {writeln("error");})(grammar_info.grammar, table_info.table, inputs));  // accept
+    static const Symbol[] inputs2 = [lPar, digit, rPar, rPar];
+    static assert (1 == parse(grammar_info.grammar, table_info.table, inputs2));     // error
 }
 

@@ -124,7 +124,7 @@ class GrammarInfo {
     private Symbol[]  terminal_symbols_array;
     private SymbolSet[] first_table;
     private SymbolSet[] follow_table;
-    this(Grammar g, string[] snd = [], bool augment = true) {
+    this (Grammar g, string[] snd = [], bool augment = true) {
         assert(g.length > 0, "\033[1m\033[32mthe length of the grammar must be > 0.\033[0m");
         symbol_name_dictionary = snd;
         
@@ -140,6 +140,11 @@ class GrammarInfo {
         else {
             grammar = g;
             start_symbol = g[0].lhs;
+        }
+        // cut empty
+        foreach (ref rule; grammar) {
+            if (rule.rhs.length == 0 || rule.rhs.all!(a => a == empty_)) rule.rhs = [empty_];
+            else rule.rhs = rule.rhs.filter!(a => a != empty_).array;
         }
         
         // set of symbols that appear in the grammar

@@ -21,6 +21,8 @@ alias EntryIndexSet = Set!(EntryIndex, (a,b) => a.state < b.state || (a.state ==
     //writeln("## LRTable unittest 1");
 //}
 
+// Starting state is supposed to be 0.
+// (indeed, SLR/LALR/LRtableInfo returns a LRTableInfo whose starting state is 0.)
 class LRTable {
     private Symbol max_symbol_number;
     private State  state_length;
