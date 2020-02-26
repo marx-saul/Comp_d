@@ -5,5 +5,5 @@
 	"copyright": "Copyright © 2020, marx-saul",
 	"description": "a LR parser generator written in D that support generating at the compile time.",
 	"license": "Boost License 1.0",
-	"name": "comp_d"
+	"name": "comp_d",
 }

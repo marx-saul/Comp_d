@@ -54,8 +54,12 @@ void main() {
     
     static const table_info = LALRtableInfo(grammar_info);
     //static int x = 0;
-    assert(0 == parse!({writeln("accept");}, (x){/+ reduce +/}, (x) {writeln("error");})(grammar_info.grammar, table_info.table, inputs));  // accept
+    assert(parse!({writeln("accept");}, (x){/+ reduce +/}, (x) {writeln("error");})(grammar_info.grammar, table_info.table, inputs) == 0);  // accept
     static const Symbol[] inputs2 = [lPar, digit, rPar, rPar];
-    static assert (1 == parse(grammar_info.grammar, table_info.table, inputs2));     // error
+    alias parser = generateParser!(grammar_info, table_info);
+    static assert (parser.parse(inputs2) == 1);             // parsing result is error.
+    
+    alias parser2 = Parser!(grammar_info, "SLR");
+    static assert (parser2.parse(inputs2) == 1);
 }
 

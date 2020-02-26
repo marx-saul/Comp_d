@@ -75,7 +75,7 @@ class LRTableInfo {
     //public  bool is_conflict;
     
     private EntryIndexSet conflict_index_set;
-    public  bool is_conflict() @property {
+    public  bool is_conflict() @property inout const {
         return conflict_index_set.cardinal > 0;
     }
     public  bool is_conflicting(State state, Symbol symbol) inout const {
