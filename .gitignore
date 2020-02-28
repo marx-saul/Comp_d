@@ -1,3 +1,15 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/comp_d
+comp_d.so
+comp_d.dylib
+comp_d.dll
+comp_d.a
+comp_d.lib
+comp_d-test-*
+*.exe
 *.o
-comp_d
-comp_d-test-library
+*.obj
+*.lst

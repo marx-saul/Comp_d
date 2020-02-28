@@ -7,6 +7,11 @@ import std.range, std.array, std.container;
 import std.algorithm, std.algorithm.comparison;
 
 void main() {
+    import example;
+    static assert (eval("26 - (32*2 - 23)") == -15);
+}
+
+/+ You can copy&paste these codes and remove the comment out to see the static parsing.
     enum : Symbol {
         Expr, Expr_, Term, Term_, Factor,
         digit, add, mul, lPar, rPar
@@ -61,5 +66,4 @@ void main() {
     
     alias parser2 = Parser!(grammar_info, "SLR");
     static assert (parser2.parse(inputs2) == 1);
-}
-
+    +/
