@@ -9,6 +9,12 @@ import std.algorithm, std.algorithm.comparison;
 void main() {
     import example;
     static assert (eval("26 - (32*2 - 23)") == -15);
+    writeln("Write expressions. 'exit' to end.");
+    while (true) {
+        auto str = readln();
+        if (str == "exit\n") break;
+        else writeln("= ", eval(str));
+    }
 }
 
 /+ You can copy&paste these codes and remove the comment out to see the static parsing.
