@@ -99,6 +99,11 @@ class GrammarInfo {
         else if (sym == max_symbol_number && augment_flag) return "S'";
         else return to!string(sym);
     }
+    private string[] rule_label;
+    public  string labelOf(inout const size_t index) inout {
+        if (index >= rule_label.length) return to!string(index);
+        else return rule_label[index];
+    }
     private Symbol start_symbol;
     public  Symbol start_sym() @property inout {
         return start_symbol;
@@ -124,9 +129,10 @@ class GrammarInfo {
     private Symbol[]  terminal_symbols_array;
     private SymbolSet[] first_table;
     private SymbolSet[] follow_table;
-    this (Grammar g, string[] snd = [], bool augment = true) {
+    this (Grammar g, string[] snd = [], string[] rl = [], bool augment = true) {
         assert(g.length > 0, "\033[1m\033[32mthe length of the grammar must be > 0.\033[0m");
         symbol_name_dictionary = snd;
+        rule_label = rl;
         
         // the maximum of the symbol number in the grammar.
         max_symbol_number = g.map!((Rule rule) => maxSymbolNumber(rule)).reduce!((a,b) => max(a,b));

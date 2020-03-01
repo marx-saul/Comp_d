@@ -23,7 +23,7 @@ static const grammar_info = new GrammarInfo(grammar(
     rule(Factor, sub, id),
 ), ["Expr", "Term", "Factor", "id", "+", "-", "*", "/"]);
 
-//
+// you can make a syntax tree using left and right
 struct Node {
     int value;
     Symbol symbol;
@@ -37,6 +37,7 @@ class Lexer {
     this() {
         tokens = [Node(id, 12), Node(add), Node(id, 23), Node(mul), Node(id, 2), Node(sub), Node(id, 16)];
     }
+    // lexer
     this(string str) {
         // generate tokens.
         size_t index;
@@ -101,7 +102,7 @@ int eval(Lexer lex) {
     int[] stack;
     bool error_flag = false;
     
-    alias parser = Parser!(grammar_info, "SLR",
+    alias parser = injectParser!(grammar_info, "SLR",
         { /* accept */ },
         (x) { /* reduce */
             switch (x) {
@@ -170,5 +171,3 @@ int eval(Lexer lex) {
 int eval(string str) {
     return eval(new Lexer(str));
 }
-
-

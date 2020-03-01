@@ -8,13 +8,15 @@ import std.algorithm, std.algorithm.comparison;
 
 void main() {
     import example;
-    static assert (eval("26 - (32*2 - 23)") == -15);
+    
+    /*static assert (eval("26 - (32*2 - 23)") == -15);
     writeln("Write expressions. 'exit' to end.");
     while (true) {
         auto str = readln();
         if (str == "exit\n") break;
-        else writeln("= ", eval(str));
-    }
+        else writeln(" = ", eval(str));
+    }*/
+    test();
 }
 
 /+ You can copy&paste these codes and remove the comment out to see the static parsing.
@@ -70,6 +72,6 @@ void main() {
     alias parser = generateParser!(grammar_info, table_info);
     static assert (parser.parse(inputs2) == 1);             // parsing result is error.
     
-    alias parser2 = Parser!(grammar_info, "SLR");
+    alias parser2 = injectParser!(grammar_info, "SLR");
     static assert (parser2.parse(inputs2) == 1);
     +/
