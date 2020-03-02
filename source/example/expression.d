@@ -5,12 +5,15 @@ import std.stdio, std.ascii;
 import std.array;
 import std.conv: to;
 
+
 // definition of the grammar
+
 enum : Symbol {
     Expr, Term, Factor,
     id, add, sub, mul, div, lPar, rPar
 }
-static const grammar_info = new GrammarInfo(grammar(
+
+static const grammar_info = new GrammarInfo([
     rule(Expr, Expr, add, Term),
     rule(Expr, Expr, sub, Term),
     rule(Expr, Term),
@@ -21,7 +24,8 @@ static const grammar_info = new GrammarInfo(grammar(
     rule(Factor, id),
     rule(Factor, add, id),
     rule(Factor, sub, id),
-), ["Expr", "Term", "Factor", "id", "+", "-", "*", "/"]);
+], ["Expr", "Term", "Factor", "id", "+", "-", "*", "/"]);
+
 
 // you can make a syntax tree using left and right
 struct Node {

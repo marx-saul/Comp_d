@@ -38,7 +38,7 @@ template rule() {
 // Grammar
 alias Grammar = Rule[];
 
-template    grammar() {
+deprecated template    grammar() {
     Grammar grammar(Args...)(Args rules) {
         static assert ( Args.length > 0, "\033[1m\033[32mThere must be at least 1 rule in grammar(...) .\033[0m" );
         static assert ( allSatisfy!(isRule, Args), "\033[1m\033[32mThere is a parameter in grammar(...) which is not the Rule type.\033[0m" );

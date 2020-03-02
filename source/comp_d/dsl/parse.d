@@ -20,7 +20,13 @@ bool stringLess(string a, string b) {
 }
 alias StringSet = Set!(string, stringLess);
 
-struct Rule {
+struct DSLGrammar {
+    DSLRule[] rules;
+    StringSet symbol_set;
+    string[] labels;
+}
+
+struct DSLRule {
     string label;   // label of the rule
     string lhs;     // lhs
     string[] rhs;   // rhs
@@ -30,16 +36,18 @@ struct Rule {
 static immutable special_tokens = ",:;@()";
 
 unittest {
-    static const strset = new StringSet("sadfsdaf", "qwertyuiop", "09fjhgkve", "\n\n");
-    writeln(strset.array);
+    //static const strset = new StringSet("sadfsdaf", "qwertyuiop", "09fjhgkve", "\n\n");
+    //writeln(strset.array);
     
-    string text = "S : @_label_1 A B C  D, @label2 EF G X; X:A B,;";
-    auto rules = parse(text);
-    foreach (rule; rules) {
+    //string text = "S : @_label_1 A B C  D, @label2 EF G X; X: @label_2 A B,;";
+    //auto dsl_grammar = parse(text);
+    /+
+    foreach (rule; dsl_grammar.rules) {
         writeln("@", rule.label, ": ", rule.lhs, ":", rule.rhs);
     }
+    +/
     
-    writeln("## dsl.parse.d unittest 1");
+    //writeln("## dsl.parse.d unittest 1");
 }
 
 /////////////////////////////
@@ -48,20 +56,40 @@ pure bool isIdentifier(string token) {
     return token.length > 0 && (isAlpha(token[0]) || token[0] == '_');
 }
 
-Rule[] parse(string text) {
-    Rule[] result;
+DSLGrammar parse(string text) {
+    DSLGrammar result; result.symbol_set = new StringSet();
     size_t index;
     auto token = nextToken(text, index);
     
+    StringSet label_set = new StringSet();
+    
     while (token != "") {
-        result ~= parseRuleList(token, text, index);
+        auto rules = parseRuleList(token, text, index);
+        result.rules ~= rules;
+        
+        // collect all the appearing symbols
+        foreach (rule; rules) {
+            result.symbol_set.add(rule.lhs);
+            foreach (symbol; rule.rhs) result.symbol_set.add(symbol);
+        }
+        
+        // collet all the label
+        foreach (rule; rules) {
+            if (rule.label == "") continue;
+            auto previous_cardinal = label_set.cardinal;
+            label_set.add(rule.label);
+            // already appeared
+            if (label_set.cardinal == previous_cardinal)
+                assert(0, "The label '@" ~ rule.label ~ "' already appeared. index="  ~ to!string(index) );
+        }
     }
     
+    result.symbol_set.remove("empty");
     return result;
 }
 
 // "A : rule, rule, rule,;"
-Rule[] parseRuleList(ref string token, string text, ref size_t index)  {
+DSLRule[] parseRuleList(ref string token, string text, ref size_t index)  {
     if (!isIdentifier(token)) { assert(0, "Identifier expected. index=" ~ to!string(index) ); }
     auto lhs = token;
     
@@ -69,7 +97,7 @@ Rule[] parseRuleList(ref string token, string text, ref size_t index)  {
     if (token != ":") { assert(0, "':' is expected. index=" ~ to!string(index) ); }
     token = nextToken(text, index);
     
-    Rule[] result;
+    DSLRule[] result;
     
     while (true) {
         auto rule = parseRhs(token, lhs, text, index);
@@ -86,8 +114,8 @@ Rule[] parseRuleList(ref string token, string text, ref size_t index)  {
 }
 
 // parse "@label identifier1 identifier2(name2)"
-Rule parseRhs(ref string token, string lhs, string text, ref size_t index) {
-    Rule result; result.lhs = lhs;
+DSLRule parseRhs(ref string token, string lhs, string text, ref size_t index) {
+    DSLRule result; result.lhs = lhs;
     assert(token.length > 0);
     // label
     if      (token == "@") {
@@ -142,7 +170,6 @@ string nextToken(string text, ref size_t index) {
     // invalid
     else { assert(0, "Invalid character: " ~ text[index]); }
     
-    writeln(result);
     return result;
 }
 

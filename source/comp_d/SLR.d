@@ -6,43 +6,43 @@ import std.array, std.container, std.container.binaryheap;
 import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln, write;
 
-// grammars that passed to these functions must be augmented.
-/+
+/+// grammars that passed to these functions must be augmented.
 unittest {
     enum : Symbol {
         Expr, Term, Factor,
         digit, add, mul, lPar, rPar
     }
-    auto grammar_info = new GrammarInfo(grammar(
+    auto grammar_info = new GrammarInfo([
         rule(Expr, Expr, add, Term),
         rule(Expr, Term),
         rule(Term, Term, mul, Factor),
         rule(Term, Factor),
         rule(Factor, digit),
         rule(Factor, lPar, Expr, rPar),
-    ), ["Expr", "Term", "Factor", "digit", "+", "*", "(", ")"]);
+    ], ["Expr", "Term", "Factor", "digit", "+", "*", "(", ")"]);
     
     //showSLRtableInfo(grammar_info);
     writeln("## SLR unittest 1");
 }
++/
 unittest {
     // this is not an SLR(1) grammar
     enum : Symbol {
         S, L, R, eq, star, id
     }
-    auto grammar_info = new GrammarInfo(grammar(
+    static const grammar_info = new GrammarInfo([
         rule(S, L, eq, R),
         rule(S, R),
         rule(L, star, R),
         rule(L, id),
         rule(R, L),
-    ), ["S", "L", "R", "=", "*", "id"]);
+    ], ["S", "L", "R", "=", "*", "id"]);
     
     showSLRtableInfo(grammar_info);
     showFollowTable(grammar_info);
     writeln("## SLR unittest 2");
 }
-+/
+
 /+
 unittest {
     enum : Symbol {
@@ -250,7 +250,7 @@ LRTableInfo SLRtableInfo(const GrammarInfo grammar_info, const LR0ItemSet[] coll
 }
 
 // When conflict occurs, one can use this function to see where the conflict occurs
-void showSLRtableInfo(const GrammarInfo grammar_info) {
+void showSLRtableInfo(const GrammarInfo grammar_info, const LRTableInfo table_info) {
     auto grammar = grammar_info.grammar;
     auto collection = canonicalLR0Collection(grammar_info);
     // show the collection
@@ -271,7 +271,7 @@ void showSLRtableInfo(const GrammarInfo grammar_info) {
     }
     
     // show the table
-    auto table_info = SLRtableInfo(grammar_info, collection);
+    //auto table_info = SLRtableInfo(grammar_info, collection);
     auto table = table_info.table;
     auto symbols_array = grammar_info.terminals.array ~ [end_of_file_] ~ grammar_info.nonterminals.array[0 .. $-1] ;
     foreach (sym; symbols_array) {
@@ -306,4 +306,9 @@ void showSLRtableInfo(const GrammarInfo grammar_info) {
         }
         writeln();
     }
+}
+
+void showSLRtableInfo(const GrammarInfo grammar_info) {
+    auto collection = canonicalLR0Collection(grammar_info);
+    showSLRtableInfo(grammar_info, SLRtableInfo(grammar_info, collection));
 }

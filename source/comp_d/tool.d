@@ -21,22 +21,23 @@ unittest {
     static assert (set1 + set3 == set2);
     
     static assert (new SymbolSet(4, [-3, -2, -1, 0, 1, 2, 3]) - new SymbolSet(4, [-3, -1, 0, 2, 3]) == set3);
-    writeln("## tool unittest 1");
+    writeln("## tool.d unittest 1");
 }
 +/
+/+
 unittest {
     enum : Symbol {
         Expr, Term, Factor,
         digit, add, mul, lPar, rPar
     }
-    static const grammar_info = new GrammarInfo(grammar(
+    static const grammar_info = new GrammarInfo([
         rule(Expr, Expr, add, Term),
         rule(Expr, Term),
         rule(Term, Term, mul, Factor),
         rule(Term, Factor),
         rule(Factor, digit),
         rule(Factor, lPar, Expr, rPar)
-    ));
+    ]);
     // FIRST(Expr) = FIRST(Term) = FIRST(Factor) = {digit, lPar}
     static const first_table  = grammar_info.first_test();
     static const follow_table = grammar_info.follow_test();
@@ -49,7 +50,7 @@ unittest {
     static assert ( equal(follow_table[Expr]  .array, [end_of_file_, add, rPar]) );
     static assert ( equal(follow_table[Term]  .array, [end_of_file_, add, mul, rPar]) );
     static assert ( equal(follow_table[Factor].array, [end_of_file_, add, mul, rPar]) );
-    writeln("## tool unittest 2");
+    writeln("## tool.d unittest 2");
 }
 unittest {
     enum : Symbol {
@@ -57,7 +58,7 @@ unittest {
         digit, add, mul, lPar, rPar
     }
     
-    static const grammar_info = new GrammarInfo(grammar(
+    static const grammar_info = new GrammarInfo([
         rule(Expr, Term, Expr_),
         rule(Expr_, add, Term, Expr_),
         rule(Expr_, empty_),
@@ -66,7 +67,7 @@ unittest {
         rule(Term_, empty_),
         rule(Factor, digit),
         rule(Factor, lPar, Expr, rPar)
-    ));
+    ]);
     
     static const first_table  = grammar_info.first_test();
     static const follow_table = grammar_info.follow_test();
@@ -84,8 +85,8 @@ unittest {
     static assert ( equal(follow_table[Factor].array, [end_of_file_, add, mul, rPar]) );
     static assert ( follow_table[Factor].cardinal ==  follow_table[Factor].array.length);
     
-    writeln("## tool unittest 3");
-}
+    writeln("## tool.d unittest 3");
+}+/
 
 class GrammarInfo {
     public Grammar grammar;
@@ -99,10 +100,15 @@ class GrammarInfo {
         else if (sym == max_symbol_number && augment_flag) return "S'";
         else return to!string(sym);
     }
+    /*public  Symbol symbolOf(inout const string name) inout {
+        import std.algorithm.searching : countUntil;
+        return countUntil(name, symbol_name_dictionary);
+    }*/
     private string[] rule_label;
     public  string labelOf(inout const size_t index) inout {
         if (index >= rule_label.length) return to!string(index);
-        else return rule_label[index];
+        else if (rule_label[index].length > 0) return rule_label[index];
+        else return to!string(index);
     }
     private Symbol start_symbol;
     public  Symbol start_sym() @property inout {
@@ -129,6 +135,7 @@ class GrammarInfo {
     private Symbol[]  terminal_symbols_array;
     private SymbolSet[] first_table;
     private SymbolSet[] follow_table;
+    // ///////////////////////////////////////////////////////////////////////////////////////////
     this (Grammar g, string[] snd = [], string[] rl = [], bool augment = true) {
         assert(g.length > 0, "\033[1m\033[32mthe length of the grammar must be > 0.\033[0m");
         symbol_name_dictionary = snd;
@@ -198,7 +205,7 @@ class GrammarInfo {
             result.add(rule.lhs);
         return result;
     }
-    
+    // ///////////////////////////////////////////////////////////////////////////////////////////
     // first set
     private SymbolSet[] calcFirstTable(Grammar grammar, Symbol max_symbol_number, const SymbolSet appearing_symbols, const SymbolSet nonterminal_symbols) {
         auto result = new SymbolSet[max_symbol_number+1];
@@ -282,7 +289,7 @@ class GrammarInfo {
         
         return result;
     }
-    
+    // ///////////////////////////////////////////////////////////////////////////////////////////
     // follow set
     public SymbolSet[] calcFollowTable(Grammar grammar, const SymbolSet nonterminals) {
         auto result = new SymbolSet[max_symbol_number+1];
@@ -323,7 +330,7 @@ class GrammarInfo {
         if (symbol.among!(empty_, end_of_file_, virtual)) assert(0, "follow cannot take parameter, " ~ to!string(symbol));
         else return cast(SymbolSet) follow_table[symbol];
     }
-    
+    /////////////////////////////////////////////////////////////////////////////////////////////
     version (unittest) {
         public void test() inout {
             writeln("\033[1m\033[32mFIRST SET\033[0m");
@@ -345,6 +352,8 @@ class GrammarInfo {
     }
 }
 
+// ///////////////////////////////////////////////////////////////////////////////////////////
+
 // show first tables
 void showFirstTable(const GrammarInfo grammar_info) {
     foreach (sym; grammar_info.nonterminals.array) {
@@ -362,6 +371,7 @@ void showFollowTable(const GrammarInfo grammar_info) {
         writeln("},");
     }
 }
+
 /****************************
  * CONSTRUCTOR MUST BE CALLED
  ***************************/ 

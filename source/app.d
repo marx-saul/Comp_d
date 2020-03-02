@@ -8,15 +8,44 @@ import std.algorithm, std.algorithm.comparison;
 
 void main() {
     import example;
-    
-    /*static assert (eval("26 - (32*2 - 23)") == -15);
+    /+
+    static assert (eval("26 - (32*2 - 23)") == -15);
     writeln("Write expressions. 'exit' to end.");
     while (true) {
         auto str = readln();
         if (str == "exit\n") break;
         else writeln(" = ", eval(str));
-    }*/
+    }
+    +/
     test();
+    
+    
+    /+
+    alias grammar2 = defineGrammar!(`
+        S :
+        @one_step
+            S l S r,
+        @empty
+            empty,
+        ;
+    `);
+    static const left = grammar2.numberOf("l"), right = grammar2.numberOf("r");
+    
+    alias parser2 = injectParser!(grammar2.grammar_info, "SLR");
+    static assert (parser2.parse([left, left, right, left, right, right]) == 0);    // accept
+    static assert (parser2.parse([left, left, right, left, right]) == 1);           // error
+    static assert (parser2.parse([right, left]) == 1);                              // error
+    static assert (parser2.parse!(Symbol[])([]) == 0);                              // accept
+    
+    int pair_num;
+    alias parser2_2 = injectParser!(grammar2.grammar_info, "SLR",
+        { /* accept */ },
+        (x) { if (grammar2.labelOf(x) == "one_step") {pair_num++;} },  // reduce
+        (x) { /* error */ }
+    );
+    parser2_2.parse([left, left, right, left, left, left, right, right, right, right]);
+    assert (pair_num == 5);
+    +/
 }
 
 /+ You can copy&paste these codes and remove the comment out to see the static parsing.

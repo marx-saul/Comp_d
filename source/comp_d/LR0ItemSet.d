@@ -41,14 +41,14 @@ unittest {
         Expr, Term, Factor,
         digit, add, mul, lPar, rPar
     }
-    static const grammar_info = new GrammarInfo(grammar(
+    static const grammar_info = new GrammarInfo([
         rule(Expr, Expr, add, Term),
         rule(Expr, Term),
         rule(Term, Term, mul, Factor),
         rule(Term, Factor),
         rule(Factor, digit),
         rule(Factor, lPar, Expr, rPar)
-    ));
+    ]);
     static const item_set1 = new LR0ItemSet(LR0Item(0, 0), LR0Item(8, 5), LR0Item(8, 1), LR0Item(3, 17));
     static assert (LR0Item(3, 16) !in item_set1);
     static assert (LR0Item(8, 1)   in item_set1);

@@ -11,25 +11,25 @@ import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln, write;
 
 // grammars that passed to these functions must be augmented.
-
+/+
 unittest{
     enum : Symbol {
         S, L, R, eq, star, id
     }
-    auto grammar_info = new GrammarInfo(grammar(
+    auto grammar_info = new GrammarInfo([
         rule(S, L, eq, R),
         rule(S, R),
         rule(L, star, R),
         rule(L, id),
         rule(R, L),
-    ), ["S", "L", "R", "=", "*", "id"]);
+    ], ["S", "L", "R", "=", "*", "id"]);
     
     import comp_d.SLR: showSLRtableInfo;
     showLALRtableInfo(grammar_info);
     //LALRtableInfo(grammar_info);
     writeln("## LALR unittest 1");
 }
-
++/
 alias LookAhead = Tuple!(size_t, "i", size_t, "j", Symbol, "symbol");
 alias LookAheadSet = Set!(LookAhead, (a,b) => a.i < b.i || (a.i == b.i && a.j < b.j) || (a.i == b.i && a.j == b.j && a.symbol < b.symbol));
 
@@ -142,7 +142,7 @@ LRTableInfo LALRtableInfo(const GrammarInfo grammar_info, const LR0ItemSet[] col
 }
 
 // When conflict occurs, one can use this function to see where the conflict occurs
-void showLALRtableInfo(const GrammarInfo grammar_info) {
+void showLALRtableInfo(const GrammarInfo grammar_info, const LRTableInfo table_info) {
     auto grammar = grammar_info.grammar;
     auto collection = canonicalLR0Collection(grammar_info);
     // show the collection
@@ -163,7 +163,7 @@ void showLALRtableInfo(const GrammarInfo grammar_info) {
     }
     
     // show the table
-    auto table_info = LALRtableInfo(grammar_info, collection);
+    //auto table_info = LALRtableInfo(grammar_info, collection);
     auto table = table_info.table;
     auto symbols_array = grammar_info.terminals.array ~ [end_of_file_] ~ grammar_info.nonterminals.array[0 .. $-1] ;
     foreach (sym; symbols_array) {
@@ -198,4 +198,9 @@ void showLALRtableInfo(const GrammarInfo grammar_info) {
         }
         writeln();
     }
+}
+
+void showLALRtableInfo(const GrammarInfo grammar_info) {
+    auto collection = canonicalLR0Collection(grammar_info);
+    showLALRtableInfo(grammar_info, LALRtableInfo(grammar_info, collection));
 }

@@ -16,7 +16,7 @@ unittest {
         Expr, Expr_, Term, Term_, Factor,
         digit, add, mul, lPar, rPar
     }
-    static const grammar_info = new GrammarInfo(grammar(
+    static const grammar_info = new GrammarInfo([
         rule(Expr, Term, Expr_),
         rule(Expr_, add, Term, Expr_),
         rule(Expr_, empty_),
@@ -25,7 +25,7 @@ unittest {
         rule(Term_, empty_),
         rule(Factor, digit),
         rule(Factor, lPar, Expr, rPar),
-    ), ["Expr", "Expr'", "Term", "Term'", "Factor", "id", "+", "*", "(", ")"]);
+    ], ["Expr", "Expr'", "Term", "Term'", "Factor", "id", "+", "*", "(", ")"]);
     static const table_info = SLRtableInfo(grammar_info);
     
     const Symbol[] inputs1 = [digit, add, lPar, digit, add, digit, mul, digit, rPar];

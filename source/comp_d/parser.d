@@ -9,34 +9,26 @@ import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln;
 import std.conv: to;
 
-enum bool IsSomeType(S, T) = is(S == T) || is(S == const T) || is(S == inout T) || is(S == inout const T);
-
 class Parser {
-    private GrammarInfo grammar_info;
-    private LRTableInfo table_info;    
-    private SymbolSet end_of_parse_symbol;
-    private string[] rule_label;
+    protected GrammarInfo grammar_info;
+    protected LRTableInfo table_info;
     
-    this(inout GrammarInfo g_i, inout LRTableInfo t_i, Symbol[] eops = [], string[] rl = []) {
+    this(inout GrammarInfo g_i, inout LRTableInfo t_i) {
         grammar_info = cast(GrammarInfo) g_i;
         table_info   = cast(LRTableInfo) t_i;
-        end_of_parse_symbol = new SymbolSet(g_i.max_symbol_num, eops);
-        rule_label = rl;
     }
     
-    // continue : -1, accept : 0, error : 1
-    private int oneStep(Lexer input, ref State[] stack) {
-        auto token = input.empty || input.front_symbol in end_of_parse_symbol ? end_of_file_ : input.front_symbol;
+    // return which action the parser did.
+    private Action oneStep(Symbol token, ref State[] stack) {
         auto table = table_info.table;
         auto grammar = grammar_info.grammar;
         auto entry = table[stack[$-1], token];
-    
+
         switch (entry.action) {
             case Action.shift:
                 stack ~= entry.num;
                 shift();
-                input.popFront();
-            return -1;
+            break;
         
             case Action.reduce:
                 auto rule = grammar[entry.num];
@@ -51,28 +43,33 @@ class Parser {
                 if (table[state2, rule.lhs].action == Action.goto_) { stack ~= table[state2, rule.lhs].num; }
                 else { assert(0); }
                 reduce(entry.num);
-            return -1;
+            break;
             
             case Action.accept:
                 accept();
-            return 0;
+            break;
                 
             case Action.error:
                 error(stack[$-1]);
-            return 1;
+            break;
                 
             default:
                 assert(0);
         }
+        return entry.action;
     }
     
-    // accept : 0, error : 1
-    public int parse(Lexer input) {
-        State[] stack = [0];
-        while (true) {
-            auto result = oneStep(input, stack);
-            if (result.among!(0, 1)) return result;
-        }
+    // you have to push end_of_file_.
+    // -1 : continue, 0 : accept, 1 : error
+    public int pushToken(Symbol token, ref State[] stack) {
+        Action action;
+        do {
+            action = oneStep(token, stack);
+        } while (action == Action.reduce);
+        
+        if      (action == Action.accept) { return 0; }
+        else if (action == Action.error ) { return 1; }
+        else { return -1; }
     }
     
     protected void accept() {
@@ -86,14 +83,3 @@ class Parser {
 
 }
 
-class Lexer {
-    abstract bool empty() @property;
-    abstract Symbol front_symbol() @property;
-    abstract void popFront();
-}
-
-class SyntaxNode {
-    Symbol symbol;
-    SyntaxNode[] children;
-    SyntaxNode parent;
-}

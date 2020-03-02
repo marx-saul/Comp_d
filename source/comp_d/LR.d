@@ -13,22 +13,22 @@ unittest {
     /*enum : Symbol {
         S, C, c, d
     }
-    auto grammar_info = new GrammarInfo(grammar(
+    auto grammar_info = new GrammarInfo([
         rule(S, C, C),
         rule(C, c, C),
         rule(C, d),
-    ), ["S", "C", "c", "d"]);
+    ], ["S", "C", "c", "d"]);
     */
     enum : Symbol {
         S, L, R, eq, star, id
     }
-    auto grammar_info = new GrammarInfo(grammar(
+    auto grammar_info = new GrammarInfo([
         rule(S, L, eq, R),
         rule(S, R),
         rule(L, star, R),
         rule(L, id),
         rule(R, L),
-    ), ["S", "L", "R", "=", "*", "id"]);
+    ], ["S", "L", "R", "=", "*", "id"]);
     //showLRtableInfo(grammar_info);
     writeln("## LR unittest 1");
 }
@@ -158,7 +158,7 @@ LRTableInfo LRtableInfo(const GrammarInfo grammar_info, const LR1ItemSet[] colle
 
 
 // When conflict occurs, one can use this function to see where the conflict occurs
-void showLRtableInfo(const GrammarInfo grammar_info) {
+void showLRtableInfo(const GrammarInfo grammar_info, const LRTableInfo table_info) {
     auto grammar = grammar_info.grammar;
     auto collection = canonicalLR1Collection(grammar_info);
     // show the collection
@@ -179,7 +179,7 @@ void showLRtableInfo(const GrammarInfo grammar_info) {
     }
     
     // show the table
-    auto table_info = LRtableInfo(grammar_info, collection);
+    //auto table_info = LRtableInfo(grammar_info, collection);
     auto table = table_info.table;
     auto symbols_array = grammar_info.terminals.array ~ [end_of_file_] ~ grammar_info.nonterminals.array[0 .. $-1] ;
     foreach (sym; symbols_array) {
@@ -214,4 +214,9 @@ void showLRtableInfo(const GrammarInfo grammar_info) {
         }
         writeln();
     }
+}
+
+void showLRtableInfo(const GrammarInfo grammar_info) {
+    auto collection = canonicalLR1Collection(grammar_info);
+    showLRtableInfo(grammar_info, LRtableInfo(grammar_info, collection));
 }

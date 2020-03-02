@@ -82,8 +82,8 @@ class LRTableInfo {
         return EntryIndex(state, symbol) in conflict_index_set;
     }
     
-    public EntryIndex[] conflictings() @property {
-        return conflict_index_set.array;
+    public EntryIndex[] conflictings() @property inout const {
+        return cast(EntryIndex[]) conflict_index_set.array;
     }
     
     private State state_number;
@@ -106,9 +106,9 @@ class LRTableInfo {
     
     // return the set
     // table[state, symbol]
-    public LREntrySet opIndex(State state, Symbol symbol) {
+    public LREntrySet opIndex(State state, Symbol symbol) inout const {
         auto access = table.get_index(symbol);
-        return set_data[state][access];
+        return cast(LREntrySet) set_data[state][access];
     }
     
     // determine the value
@@ -119,6 +119,12 @@ class LRTableInfo {
         table[state, symbol] = value;
         conflict_index_set.remove(EntryIndex(state, symbol));
     }
+    
+    /* if conflicting occurs on the symbol 'symbol', solve it by replacing by action(reduce or shift)
+    public void opIndexAssign(Action action, Symbol symbol) {
+        
+    }
+     */
     
     // add entry to the table[state, symbol]
     public void add(LREntry value, State state, Symbol symbol) {
