@@ -18,7 +18,7 @@ void main() {
     }
     +/
     writeln(test_lang("2 * 29 - 2*2*2*2"));
-    
+    static assert (test_lang("2 * 29 - 2*2*2*2") == 42);
     
     /+
     alias grammar2 = defineGrammar!(`

@@ -61,12 +61,12 @@ class Parser {
     
     // you have to push end_of_file_.
     // -1 : continue, 0 : accept, 1 : error, -2 : nonterminal pushed
+    private State[] symbol_stack = [0];
     public int pushToken(Symbol token) {
-        static State[] stack = [0];
         Action action;
         do {
             if (token in _grammar_info_.nonterminals) return -2;
-            action = oneStep(token, stack);
+            action = oneStep(token, symbol_stack);
         } while (action == Action.reduce);
         
         if      (action == Action.accept) { return 0; }
