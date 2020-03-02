@@ -10,7 +10,7 @@ import std.conv: to;
 // dictionary order
 bool stringLess(string a, string b) {
     if (a.length < b.length) return true;
-    if (a.length > b.length) return true;
+    if (a.length > b.length) return false;
     foreach (i, c1; a) {
         auto c2 = b[i];
         if (c1 < c2) return true;

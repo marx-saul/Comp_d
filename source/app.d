@@ -17,7 +17,7 @@ void main() {
         else writeln(" = ", eval(str));
     }
     +/
-    test();
+    writeln(test_lang("2 * 29 - 2*2*2*2"));
     
     
     /+

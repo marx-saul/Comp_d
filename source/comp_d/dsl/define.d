@@ -33,8 +33,11 @@ unittest {
 Tuple!(GrammarInfo, string[]) generateGrammar(const string text) {
     auto dsl_grammar = parse(text);
     
-    StringSet symbol_set = dsl_grammar.symbol_set; 
+    // all the symbols appeared in the grammar
+    StringSet symbol_set = dsl_grammar.symbol_set;
+    // their names
     string[] symbol_names = symbol_set.array;
+    // 
     auto symbol_names_range = assumeSorted!(stringLess)(symbol_names);
     Symbol number_of_symbol(string s) {
         if (s == "empty") return empty_;
@@ -57,6 +60,7 @@ template defineGrammar(alias string text) {
     static const symbol_names = temp[1];
     
     Symbol numberOf(const string s) {
+        //writeln(symbol_names);
         if (s == "empty") return empty_;
         auto symbol_names_range = assumeSorted!(stringLess)(symbol_names);
         return cast(Symbol) symbol_names_range.lowerBound!(SearchPolicy.binarySearch)(s).length;

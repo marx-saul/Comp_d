@@ -1,4 +1,3 @@
-// parser class
 module comp_d.parser;
 
 import comp_d.SLR, comp_d.LALR, comp_d.LR;
@@ -9,21 +8,22 @@ import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln;
 import std.conv: to;
 
+// parser class (one class instance per one parse)
 class Parser {
-    protected GrammarInfo grammar_info;
-    protected LRTableInfo table_info;
+    private GrammarInfo _grammar_info_;
+    private LRTableInfo _table_info_;
     
     this(inout GrammarInfo g_i, inout LRTableInfo t_i) {
-        grammar_info = cast(GrammarInfo) g_i;
-        table_info   = cast(LRTableInfo) t_i;
+        _grammar_info_ = cast(GrammarInfo) g_i;
+        _table_info_   = cast(LRTableInfo) t_i;
     }
     
     // return which action the parser did.
     private Action oneStep(Symbol token, ref State[] stack) {
-        auto table = table_info.table;
-        auto grammar = grammar_info.grammar;
+        auto table = _table_info_.table;
+        auto grammar = _grammar_info_.grammar;
         auto entry = table[stack[$-1], token];
-
+        
         switch (entry.action) {
             case Action.shift:
                 stack ~= entry.num;
@@ -54,16 +54,18 @@ class Parser {
             break;
                 
             default:
-                assert(0);
+                assert(0, to!string(entry.action));
         }
         return entry.action;
     }
     
     // you have to push end_of_file_.
-    // -1 : continue, 0 : accept, 1 : error
-    public int pushToken(Symbol token, ref State[] stack) {
+    // -1 : continue, 0 : accept, 1 : error, -2 : nonterminal pushed
+    public int pushToken(Symbol token) {
+        static State[] stack = [0];
         Action action;
         do {
+            if (token in _grammar_info_.nonterminals) return -2;
             action = oneStep(token, stack);
         } while (action == Action.reduce);
         
