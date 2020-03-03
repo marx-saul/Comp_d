@@ -72,4 +72,12 @@ template defineGrammar(alias string text) {
     /+string nameOf (const Symbol sym) {
         return grammar_info.nameOf(sym);
     }+/
+    
+    string TokenDeclarations() @property {
+        string result = " ";
+        foreach (i; 0 .. grammar_info.max_symbol_num + 1) {
+            if (i in grammar_info.terminals) { result ~= symbol_names[i] ~ " = " ~ to!string(i) ~ ", "; }
+        }
+        return result[0 .. $-2];
+    }
 }

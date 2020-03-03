@@ -15,10 +15,10 @@ void main()
         else writeln(" = ", eval(str));
     }
     +/
+    
     // lang.d
     writeln(test_lang("2 * 29 - 2*2*2*2"));
     static assert (test_lang("2 * 29 - 2*2*2*2") == 42);
-    writeln("example");
     
     /+ // DSL
     alias grammar2 = defineGrammar!(`

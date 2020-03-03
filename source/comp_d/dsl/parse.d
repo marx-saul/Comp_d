@@ -58,13 +58,13 @@ pure bool isIdentifier(string token) {
 
 DSLGrammar parse(string text) {
     DSLGrammar result; result.symbol_set = new StringSet();
-    size_t index;
-    auto token = nextToken(text, index);
+    size_t index, line_num;
+    auto token = nextToken(text, index, line_num);
     
     StringSet label_set = new StringSet();
     
     while (token != "") {
-        auto rules = parseRuleList(token, text, index);
+        auto rules = parseRuleList(token, text, index, line_num);
         result.rules ~= rules;
         
         // collect all the appearing symbols
@@ -80,7 +80,7 @@ DSLGrammar parse(string text) {
             label_set.add(rule.label);
             // already appeared
             if (label_set.cardinal == previous_cardinal)
-                assert(0, "The label '@" ~ rule.label ~ "' already appeared. index="  ~ to!string(index) );
+                assert(0, "The label '@" ~ rule.label ~ "' already appeared. Line Number=" ~ to!string(line_num) );
         }
     }
     
@@ -89,56 +89,60 @@ DSLGrammar parse(string text) {
 }
 
 // "A : rule, rule, rule,;"
-DSLRule[] parseRuleList(ref string token, string text, ref size_t index)  {
-    if (!isIdentifier(token)) { assert(0, "Identifier expected. index=" ~ to!string(index) ); }
+DSLRule[] parseRuleList(ref string token, string text, ref size_t index, ref size_t line_num)  {
+    if (!isIdentifier(token)) { assert(0, "Identifier expected. Line Number=" ~ to!string(line_num) ); }
     auto lhs = token;
     
-    token = nextToken(text, index);
-    if (token != ":") { assert(0, "':' is expected. index=" ~ to!string(index) ); }
-    token = nextToken(text, index);
+    token = nextToken(text, index, line_num);
+    if (token != ":") { assert(0, "':' is expected. Line Number=" ~ to!string(line_num) ); }
+    token = nextToken(text, index, line_num);
     
     DSLRule[] result;
     
     while (true) {
-        auto rule = parseRhs(token, lhs, text, index);
+        auto rule = parseRhs(token, lhs, text, index, line_num);
         result ~= rule;
         
-        if (token == ",") { token = nextToken(text, index); }
+        if (token == ",") { token = nextToken(text, index, line_num); }
         
         if      (isIdentifier(token) || token == "@") continue;
-        else if (token == ";") { token = nextToken(text, index); break; }
-        else assert(0, "',', ';', '@' or an identifier expected. index=" ~ to!string(index) );
+        else if (token == ";") { token = nextToken(text, index, line_num); break; }
+        else assert(0, "',', ';', '@' or an identifier expected. Did you forget ';' at the last of some rule? Line Number=" ~ to!string(line_num) );
     }
     
     return result;
 }
 
 // parse "@label identifier1 identifier2(name2)"
-DSLRule parseRhs(ref string token, string lhs, string text, ref size_t index) {
+DSLRule parseRhs(ref string token, string lhs, string text, ref size_t index, ref size_t line_num) {
     DSLRule result; result.lhs = lhs;
-    assert(token.length > 0);
+    assert(token.length > 0, "Parsing error. END_OF_FILE is not expected.");
     // label
     if      (token == "@") {
-        token = nextToken(text, index);
+        token = nextToken(text, index, line_num);
         if (token == "") { assert(0); }
-        if (!isIdentifier(token)) { assert(0, "Identifier must come after '@'. index=" ~ to!string(index) ); }
+        if (!isIdentifier(token)) { assert(0, "Identifier must come after '@'. Line Number=" ~ to!string(line_num) ); }
         result.label = token;
-        token = nextToken(text, index);
+        token = nextToken(text, index, line_num);
     }
-    else if (!isIdentifier(token)) { assert(0, "Identifier or an label is expected. index=" ~ to!string(index)); }
+    else if (!isIdentifier(token)) { assert(0, "Identifier or an label is expected. Line Number=" ~ to!string(line_num) ); }
     
     while (isIdentifier(token)) {
         result.rhs ~= token;
-        token = nextToken(text, index);
+        auto previous_line_num = line_num;
+        token = nextToken(text, index, line_num);
+        if (previous_line_num < line_num && isIdentifier(token)) {
+            assert(0, "Line breaks in a single sequence before" ~ token ~ ". Did you forget ',' at the end? Line Number=" ~ to!string(line_num) );
+        }
         
         /* * 'name'
         if (token == "(") {
-            token = nextToken(text, index);
+            token = nextToken(text, index, line_num);
             if (!isIdentifier(token)) { assert(0, "Identifier must come after '('. index=" ~ to!string(index)); }
             result.name ~= token;
-            token = nextToken(text, index);
+            token = nextToken(text, index, line_num);
             if (token != ")") { assert(0, "')' is expected. index = " ~ to!string(index)); }
-            token = nextToken(text, index);
+            token = nextToken(text, index, line_num);
         }
         else { result.name ~= ""; }
         */
@@ -147,10 +151,11 @@ DSLRule parseRhs(ref string token, string lhs, string text, ref size_t index) {
     return result;
 }
 
-string nextToken(string text, ref size_t index) {
+string nextToken(string text, ref size_t index, ref size_t line_num) {
     string result;
     // skip spaces
     while (index < text.length && isWhite(text[index])) {
+        if (text[index] == '\n') line_num++;
         index++;
     }
     if (index >= text.length) return result;
