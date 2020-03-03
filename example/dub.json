@@ -6,6 +6,6 @@
 	"description": "examples of parsers using comp_d library",
 	"license": "BSL-1.0",
 	"name": "example",
-	"importPaths": ["../source/"],
+	"importPaths": ["../source/", "./source"],
 	"sourcePaths": ["./source", "../source/comp_d"],
 }

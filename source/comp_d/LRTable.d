@@ -82,8 +82,8 @@ class LRTableInfo {
         return EntryIndex(state, symbol) in conflict_index_set;
     }
     
-    public EntryIndex[] conflictings() @property inout const {
-        return cast(EntryIndex[]) conflict_index_set.array;
+    public inout(EntryIndex)[] conflictings() @property inout const {
+        return conflict_index_set.array;
     }
     
     private State state_number;

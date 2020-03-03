@@ -5,7 +5,6 @@ import std.stdio, std.ascii;
 import std.array;
 import std.conv: to;
 
-
 // definition of the grammar
 
 enum : Symbol {

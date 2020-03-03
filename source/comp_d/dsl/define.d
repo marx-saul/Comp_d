@@ -26,7 +26,7 @@ unittest {
     writeln(grammar.grammar_info.grammar);
     writeln(grammar.grammar_info.labelOf(1));
     writeln(grammar.grammar_info.nameOf(1));
-    writeln(grammar.numberOfName("S"));
+    writeln(grammar.numberOf("S"));
     writeln("## define.d unittest 1");
 }
 
