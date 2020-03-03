@@ -1,14 +1,12 @@
 // Reference: Compilers: Principles, Techniques, and Tools, written by Alfred V. Aho, Monica S. Lam, Ravi Sethi, and Jeffrey D. Ullman
-
-//import data, tool, SLR, LR, LALR;
-import comp_d;
+import expression, lang;
 import std.stdio, std.typecons;
 import std.range, std.array, std.container;
 import std.algorithm, std.algorithm.comparison;
 
-void main() {
-    import example;
-    /+
+void main()
+{
+	/+ // expression.d
     static assert (eval("26 - (32*2 - 23)") == -15);
     writeln("Write expressions. 'exit' to end.");
     while (true) {
@@ -17,10 +15,12 @@ void main() {
         else writeln(" = ", eval(str));
     }
     +/
+    // lang.d
     writeln(test_lang("2 * 29 - 2*2*2*2"));
     static assert (test_lang("2 * 29 - 2*2*2*2") == 42);
+    writeln("example");
     
-    /+
+    /+ // DSL
     alias grammar2 = defineGrammar!(`
         S :
         @one_step
@@ -48,7 +48,9 @@ void main() {
     +/
 }
 
-/+ You can copy&paste these codes and remove the comment out to see the static parsing.
+/+ // You can copy&paste these codes and remove the comment out to see the static parsing.
+    
+    // EXAMPLE 1
     enum : Symbol {
         Expr, Expr_, Term, Term_, Factor,
         digit, add, mul, lPar, rPar
@@ -65,7 +67,8 @@ void main() {
     ), ["Expr", "Expr'", "Term", "Term'", "Factor", "id", "+", "*", "(", ")"]);
     Symbol[] inputs = [digit, add, lPar, digit, add, digit, mul, digit, rPar];
     //showLALRtableInfo(grammar_info);
-    /+
+    
+    /+ // EXAMPLE 2
     enum : Symbol {
         S, A, B, a, b, c, d, e
     }
@@ -80,7 +83,8 @@ void main() {
     ), ["S", "A", "B", "a", "b", "c", "d", "e"]);
     Symbol[] inputs = [star, star, star, id, eq, star, star, id, end_of_file_];
     +/
-    /+
+    
+    /+ // EXAMPLE 3
     enum : Symbol {
         S, L, R, eq, star, id
     }
@@ -103,4 +107,4 @@ void main() {
     
     alias parser2 = injectParser!(grammar_info, "SLR");
     static assert (parser2.parse(inputs2) == 1);
-    +/
++/

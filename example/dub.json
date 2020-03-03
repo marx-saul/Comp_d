@@ -1,0 +1,11 @@
+{
+	"authors": [
+		"marx-saul"
+	],
+	"copyright": "Copyright © 2020, marx-saul",
+	"description": "examples of parsers using comp_d library",
+	"license": "BSL-1.0",
+	"name": "example",
+	"importPaths": ["../source/"],
+	"sourcePaths": ["./source", "../source/comp_d"],
+}

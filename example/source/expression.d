@@ -1,4 +1,4 @@
-module example.expression;
+module expression;
 
 import comp_d;
 import std.stdio, std.ascii;

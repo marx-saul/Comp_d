@@ -1,4 +1,4 @@
-module example.lang;
+module lang;
 
 import comp_d;
 import std.stdio, std.ascii;
