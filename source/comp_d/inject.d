@@ -129,7 +129,7 @@ template injectParser(
     else
         static assert(0, "No parser type " ~ type);
     
-    static if (table_info.is_conflict) pragma(msg, "Conflicting occurs. " ~ module_name ~ " / " ~ file_name ~ " : " ~ to!string(line));
+    static if (table_info.is_conflict) pragma(msg, "Conflict occurs. " ~ module_name ~ " / " ~ file_name ~ " : " ~ to!string(line));
     
     alias injectParser = generateParser!(grammar_info, table_info, _accept, _reduce, _error, _shift);
 }
