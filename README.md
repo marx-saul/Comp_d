@@ -10,5 +10,8 @@ Make an interface for LRTable. (LRTable.d)
 
 Implement minimal LR(1) algorithm (IELR(1) if vigorous enough).
 
-### Others
+## Others
 Any improvement suggests/advices/requests are welcome.
+
+### History
+v0.1.0 First publish.

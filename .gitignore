@@ -9,6 +9,7 @@ comp_d.dll
 comp_d.a
 comp_d.lib
 comp_d-test-*
+libcomp_d.a
 *.exe
 *.o
 *.obj
