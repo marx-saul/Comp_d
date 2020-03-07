@@ -375,7 +375,7 @@ void showFollowTable(const GrammarInfo grammar_info) {
 /****************************
  * CONSTRUCTOR MUST BE CALLED
  ***************************/ 
-class SymbolSet {
+package class SymbolSet {
     // data[symbol+max_symbol_number] is true iff symbol is in the set.
     private bool[] data;
     private Symbol max_symbol_number;

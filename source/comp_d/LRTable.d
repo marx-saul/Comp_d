@@ -75,19 +75,19 @@ class LRTableInfo {
     //public  bool is_conflict;
     
     private EntryIndexSet conflict_index_set;
-    public  bool is_conflict() @property inout const {
+    package bool is_conflict() @property inout const {
         return conflict_index_set.cardinal > 0;
     }
-    public  bool is_conflicting(State state, Symbol symbol) inout const {
+    package bool is_conflicting(State state, Symbol symbol) inout const {
         return EntryIndex(state, symbol) in conflict_index_set;
     }
     
-    public inout(EntryIndex)[] conflictings() @property inout const {
+    package inout(EntryIndex)[] conflictings() @property inout const {
         return conflict_index_set.array;
     }
     
     private State state_number;
-    public State state_num() @property inout const {
+    package State state_num() @property inout const {
         return state_number;
     }
     
@@ -127,7 +127,7 @@ class LRTableInfo {
      */
     
     // add entry to the table[state, symbol]
-    public void add(LREntry value, State state, Symbol symbol) {
+    package void add(LREntry value, State state, Symbol symbol) {
         auto access = table.get_index(symbol);
         set_data[state][access].add(value);
         // conflicted

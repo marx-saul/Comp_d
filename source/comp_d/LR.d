@@ -33,7 +33,7 @@ unittest {
     writeln("## LR unittest 1");
 }
 
-LR1ItemSet closure(const GrammarInfo grammar_info, inout LR1ItemSet item_set) {
+package LR1ItemSet closure(const GrammarInfo grammar_info, inout LR1ItemSet item_set) {
     auto result = new LR1ItemSet( (cast(LR1ItemSet) item_set).array);
     auto grammar = grammar_info.grammar;
     
@@ -60,7 +60,7 @@ LR1ItemSet closure(const GrammarInfo grammar_info, inout LR1ItemSet item_set) {
     return result;
 }
 
-LR1ItemSet _goto(const GrammarInfo grammar_info, inout LR1ItemSet item_set, inout Symbol symbol) {
+package LR1ItemSet _goto(const GrammarInfo grammar_info, inout LR1ItemSet item_set, inout Symbol symbol) {
     auto result = new LR1ItemSet();
     // goto(item_set, symbol) is defined to be the closure of all items [A -> sX.t]
     // such that X = symbol and [A -> s.Xt] is in item_set.
@@ -76,7 +76,7 @@ LR1ItemSet _goto(const GrammarInfo grammar_info, inout LR1ItemSet item_set, inou
 // grammar_info.grammar is supposed to be augmented when passed to this function.
 // Then grammar_info.grammar[$-1] is [S' -> S]
 // and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
-LR1ItemSet[] canonicalLR1Collection(const GrammarInfo grammar_info) {
+package LR1ItemSet[] canonicalLR1Collection(const GrammarInfo grammar_info) {
     auto item_set_0 = grammar_info.closure( new LR1ItemSet(LR1Item(grammar_info.grammar.length-1, 0, end_of_file_)) );
     auto result = new LR1ItemSetSet (item_set_0);
     
@@ -116,7 +116,7 @@ LRTableInfo LRtableInfo(inout const GrammarInfo grammar_info) {
     return LRtableInfo(grammar_info, canonicalLR1Collection(grammar_info));
 }
 
-LRTableInfo LRtableInfo(const GrammarInfo grammar_info, const LR1ItemSet[] collection) {
+private LRTableInfo LRtableInfo(const GrammarInfo grammar_info, const LR1ItemSet[] collection) {
     auto result = new LRTableInfo(collection.length, grammar_info.max_symbol_num);
     auto grammar = grammar_info.grammar;
     
@@ -158,7 +158,7 @@ LRTableInfo LRtableInfo(const GrammarInfo grammar_info, const LR1ItemSet[] colle
 
 
 // When conflict occurs, one can use this function to see where the conflict occurs
-void showLRtableInfo(const GrammarInfo grammar_info, const LRTableInfo table_info) {
+private void showLRtableInfo(const GrammarInfo grammar_info, const LRTableInfo table_info) {
     auto grammar = grammar_info.grammar;
     auto collection = canonicalLR1Collection(grammar_info);
     // show the collection

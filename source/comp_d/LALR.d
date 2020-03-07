@@ -37,7 +37,7 @@ alias LookAheadSet = Set!(LookAhead, (a,b) => a.i < b.i || (a.i == b.i && a.j < 
 // Then grammar_info.grammar[$-1] is [S' -> S]
 // and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
 // This considers the conflict.
-LookAheadSet Propagates(const GrammarInfo grammar_info, const LR0ItemSet[] collection, const LRTableInfo table) {
+private LookAheadSet Propagates(const GrammarInfo grammar_info, const LR0ItemSet[] collection, const LRTableInfo table) {
     auto grammar = grammar_info.grammar;
     
     // kernel item is [S' -> .S] or an item whose dot is not at the start.
@@ -122,7 +122,7 @@ LRTableInfo LALRtableInfo(const GrammarInfo grammar_info) {
     return LALRtableInfo(grammar_info, canonicalLR0Collection(grammar_info));
 }
 
-LRTableInfo LALRtableInfo(const GrammarInfo grammar_info, const LR0ItemSet[] collection) {
+private LRTableInfo LALRtableInfo(const GrammarInfo grammar_info, const LR0ItemSet[] collection) {
     auto result = SLRtableInfo(grammar_info, collection);
     auto lookaheads = Propagates(grammar_info, collection, result);
     auto lookaheads_array = lookaheads.array;
@@ -142,7 +142,7 @@ LRTableInfo LALRtableInfo(const GrammarInfo grammar_info, const LR0ItemSet[] col
 }
 
 // When conflict occurs, one can use this function to see where the conflict occurs
-void showLALRtableInfo(const GrammarInfo grammar_info, const LRTableInfo table_info) {
+private void showLALRtableInfo(const GrammarInfo grammar_info, const LRTableInfo table_info) {
     auto grammar = grammar_info.grammar;
     auto collection = canonicalLR0Collection(grammar_info);
     // show the collection
