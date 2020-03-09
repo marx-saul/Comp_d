@@ -117,7 +117,7 @@ class GrammarInfo {
     private Symbol max_symbol_number;
     public  Symbol max_symbol_num() @property inout {
         return max_symbol_number;
-    };
+    }
     private SymbolSet appearing_symbols;
     public  immutable(SymbolSet) appearings() @property inout {
         return cast(immutable SymbolSet) appearing_symbols;
@@ -262,13 +262,13 @@ class GrammarInfo {
     }
     
     // FIRST(Y)
-    private SymbolSet first(Symbol symbol) inout {
+    private SymbolSet first(inout Symbol symbol) inout {
         if (symbol.among!(empty_, end_of_file_, virtual)) return symbolSet(symbol);
         else return cast(SymbolSet) first_table[symbol];
     }
     
     // FIRST(Y0 Y1 ... Yn)
-    public SymbolSet first(Symbol[] symbols) inout {
+    public SymbolSet first(inout(Symbol)[] symbols) inout const {
         auto result = symbolSet();
         if (symbols.length == 0) {
             result.add(empty_);
@@ -376,7 +376,7 @@ void showFollowTable(const GrammarInfo grammar_info) {
  * CONSTRUCTOR MUST BE CALLED
  ***************************/ 
 package class SymbolSet {
-    // data[symbol+max_symbol_number] is true iff symbol is in the set.
+    // data[symbol+special_tokens] is true iff symbol is in the set.
     private bool[] data;
     private Symbol max_symbol_number;
     
@@ -477,4 +477,20 @@ package class SymbolSet {
         else assert(0, "\033[1m\033[32m" ~ op ~ "= for Set is not implemented.\033[0m");
     }
 }
-
+/+
+// compare two symbol sets (which are assumed to have same max_symbol_number)
+bool SymbolSetLess(SymbolSet a, SymbolSet b) {
+    if      (a.cardinal < b.cardinal) return true;
+    else if (a.cardinal > b.cardinal) return false;
+    
+    if      (a.max_symbol_number < b.max_symbol_number) return true;
+    else if (a.max_symbol_number > b.max_symbol_number) return false;
+    
+    foreach (i; 0 .. a.data.length) {
+        if      (a.data[i] && !b.data[i]) return true;
+        else if (!a.data[i] && b.data[i]) return false;
+    }
+    
+    return false;
+}
++/

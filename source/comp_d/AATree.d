@@ -28,7 +28,7 @@ unittest {
 }
 
 // T is key, S is value
-class AATree(T, alias less = (a,b)=>a<b, S = bool)
+class AATree(T, alias less = (a,b) => a < b, S = bool)
     if ( is(typeof(less(T.init, T.init))) )
 {
     // if left and right are null (i.e., the node is a leaf), level = 1
@@ -90,19 +90,19 @@ class AATree(T, alias less = (a,b)=>a<b, S = bool)
         }
     }
     public bool hasKey(inout T val) inout {
-        return hasKey(val, cast(Node*)root) != null;
+        return hasKey(val, cast(Node*) root) != null;
     }
-    public S getValue(inout T val) inout const {
+    public ref S getValue(inout T val) inout const {
         return hasKey(val, cast(Node*) root).s;
     }
     
     // [] overload
-    public S opIndex(T index) inout const {
+    public ref S opIndex(T index) inout const {
         return getValue(index);
     }
-    // table[state, symbol]
-    public S opIndexAssign(S s, T index, Symbol symbol) {
-        insert(index, root, s);
+    // aatree[index] = s
+    public S opIndexAssign(S s, T index) {
+        root = insert(index, root, s);
         return s;
     }
     
@@ -130,7 +130,7 @@ class AATree(T, alias less = (a,b)=>a<b, S = bool)
     //   v       v                v    v
     //   a       b                a    b
     private Node* split(Node* node) inout {
-        if (node == null)                                        return null;
+        if      (node == null)                                   return null;
         else if (node.right == null || node.right.right == null) return node;
         else if (node.level == node.right.right.level) {
             auto R = node.right;
@@ -151,10 +151,10 @@ class AATree(T, alias less = (a,b)=>a<b, S = bool)
             return new_node;
         }
         else if (less(val, node.val)) {
-            node.left  = insert(val, node.left);
+            node.left  = insert(val, node.left, s);
         }
         else if (less(node.val, val)) {
-            node.right = insert(val, node.right);
+            node.right = insert(val, node.right, s);
         }
         else {
             node.s = s;
@@ -207,9 +207,11 @@ class AATree(T, alias less = (a,b)=>a<b, S = bool)
     
     private Node* decrease_level(Node* node) {
         auto normalize
-           = min( node.left  ? node.left.level  : 0,
-                  node.right ? node.right.level : 0
-             ) + 1;
+           = min(
+               node.left  ? node.left.level  : 0,
+               node.right ? node.right.level : 0
+             )
+           + 1;
         if (normalize < node.level) {
             node.level = normalize;
             if (normalize < node.right.level)

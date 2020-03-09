@@ -10,7 +10,7 @@ import std.stdio: writeln;
 // i : [A -> X.YZ, sym] is LR0Item(i, 1, sym)
 alias LR1Item = Tuple!(size_t, "num", size_t, "index", Symbol, "lookahead");
 
-// dictionary-order of LR0Item
+// dictionary-order of LR1Item
 bool ItemLess(LR1Item a, LR1Item b) {
     return a.num < b.num || (a.num == b.num && a.index < b.index) || (a.num == b.num && a.index == b.index && a.lookahead < b.lookahead);
 }

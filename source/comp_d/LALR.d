@@ -9,9 +9,8 @@ import std.typecons;
 import std.array, std.container, std.container.binaryheap;
 import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln, write;
-
-// grammars that passed to these functions must be augmented.
 /+
+// grammars that passed to these functions must be augmented.
 unittest{
     enum : Symbol {
         S, L, R, eq, star, id
@@ -76,7 +75,8 @@ private LookAheadSet Propagates(const GrammarInfo grammar_info, const LR0ItemSet
         if (!isKernel(kernel_item)) continue;
         
         // calculate the LR1-closure of each kernel item in LR0-collection with lookahead #.
-        auto lookahead_item_set = closure(grammar_info, new LR1ItemSet(LR1Item(kernel_item.num, kernel_item.index, virtual)) );
+        auto lookahead_item_set = new LR1ItemSet(LR1Item(kernel_item.num, kernel_item.index, virtual));
+        closure(grammar_info, lookahead_item_set);
         foreach (LR1item; lookahead_item_set.array) {
             // . is at the last
             if (LR1item.index >= grammar[LR1item.num].rhs.length) continue;

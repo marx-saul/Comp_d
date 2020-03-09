@@ -10,15 +10,16 @@ import std.conv: to;
 // grammars that passed to the functions must be augmented.
 
 unittest {
-    /*enum : Symbol {
+    enum : Symbol {
         S, C, c, d
     }
-    auto grammar_info = new GrammarInfo([
+    static const grammar_info = new GrammarInfo([
+        rule(S, empty_),
         rule(S, C, C),
         rule(C, c, C),
         rule(C, d),
     ], ["S", "C", "c", "d"]);
-    */
+    /*
     enum : Symbol {
         S, L, R, eq, star, id
     }
@@ -29,19 +30,20 @@ unittest {
         rule(L, id),
         rule(R, L),
     ], ["S", "L", "R", "=", "*", "id"]);
-    //showLRtableInfo(grammar_info);
+    */
+    showLRtableInfo(grammar_info);
     writeln("## LR unittest 1");
 }
 
-package LR1ItemSet closure(const GrammarInfo grammar_info, inout LR1ItemSet item_set) {
-    auto result = new LR1ItemSet( (cast(LR1ItemSet) item_set).array);
+// replace item_set by its closure
+package void closure(const GrammarInfo grammar_info, LR1ItemSet item_set) {
     auto grammar = grammar_info.grammar;
     
     while (true) {
-        auto previous_cardinal = result.cardinal;
+        auto previous_cardinal = item_set.cardinal;
         // for all [A -> s.Bt, a] in item set and rule B -> u,
-        // add [B -> .u, b] where b is in FIRST(ta)
-        foreach (item; result.array) {
+        // add [B -> .u, b] where a terminal symbol b is in FIRST(ta)
+        foreach (item; item_set.array) {
             // . is at the end
             if (item.index >= grammar[item.num].rhs.length) continue;
             
@@ -49,15 +51,13 @@ package LR1ItemSet closure(const GrammarInfo grammar_info, inout LR1ItemSet item
             foreach (i, rule; grammar) {
                 if (rule.lhs != B) continue;
                 // symbol = b
-                foreach (symbol; grammar_info.first( grammar[item.num].rhs[min($, item.index+1) .. $] ~ [item.lookahead] ).array )
-                    result.add(LR1Item(i, 0, symbol));
+                foreach (symbol; grammar_info.first( grammar[item.num].rhs[item.index+1 .. $] ~ [item.lookahead] ).array )
+                    item_set.add(LR1Item(i, 0, symbol));
             }
         }
         // nothing was added
-        if (result.cardinal == previous_cardinal) break;
+        if (item_set.cardinal == previous_cardinal) break;
     }
-    
-    return result;
 }
 
 package LR1ItemSet _goto(const GrammarInfo grammar_info, inout LR1ItemSet item_set, inout Symbol symbol) {
@@ -70,14 +70,16 @@ package LR1ItemSet _goto(const GrammarInfo grammar_info, inout LR1ItemSet item_s
         else if (grammar_info.grammar[item.num].rhs[item.index] == symbol) result.add(LR1Item(item.num, item.index+1, item.lookahead));
     }
     
-    return closure(grammar_info, result);
+    closure(grammar_info, result);
+    return result;
 }
 
 // grammar_info.grammar is supposed to be augmented when passed to this function.
 // Then grammar_info.grammar[$-1] is [S' -> S]
 // and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
 package LR1ItemSet[] canonicalLR1Collection(const GrammarInfo grammar_info) {
-    auto item_set_0 = grammar_info.closure( new LR1ItemSet(LR1Item(grammar_info.grammar.length-1, 0, end_of_file_)) );
+    auto item_set_0 = new LR1ItemSet(LR1Item(grammar_info.grammar.length-1, 0, end_of_file_));
+    grammar_info.closure( item_set_0 );
     auto result = new LR1ItemSetSet (item_set_0);
     
     // these does not contain S'.
@@ -158,7 +160,7 @@ private LRTableInfo LRtableInfo(const GrammarInfo grammar_info, const LR1ItemSet
 
 
 // When conflict occurs, one can use this function to see where the conflict occurs
-private void showLRtableInfo(const GrammarInfo grammar_info, const LRTableInfo table_info) {
+void showLRtableInfo(const GrammarInfo grammar_info, const LRTableInfo table_info) {
     auto grammar = grammar_info.grammar;
     auto collection = canonicalLR1Collection(grammar_info);
     // show the collection

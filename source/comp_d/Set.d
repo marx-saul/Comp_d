@@ -16,6 +16,7 @@ unittest {
     static const set3 = set1 + set2;
     static assert (set3 == new Set!int(3, 5, 1, 7, 8, 4, 7));
     static assert (set3 - set2 == set1);
+    static assert ((set2 & set1).cardinal == 0);
     
     Set!int test() {
         auto result = new Set!int();
@@ -119,6 +120,16 @@ class Set(T, alias less = (a,b)=>a<b)
         return result;
     }
     
+    // operator "&" overload
+    // cap
+    public Set!(T, less) opBinary(string op)(inout Set!(T, less) set2) inout
+        if (op == "&")
+    {
+        auto result = new Set!(T, less)();
+        foreach (t; this.aat.array) if (t in set2) result.add(t);
+        return result;
+    }
+    
     // operator "-" overload
     // subtract
     public Set!(T, less) opBinary(string op)(inout Set!(T, less) set2) inout
@@ -216,6 +227,16 @@ struct HashSet(T) {
         HashSet!T result;
         foreach (t; this._arr.byKey) result.add(t);
         foreach (t; set2._arr.byKey) result.add(t);
+        return result;
+    }
+    
+    // operator "&" overload
+    // cap
+    public HashSet!T opBinary(string op)(HashSet!T set2)
+        if (op == "&")
+    {
+        HashSet!T result;
+        foreach (t; this._arr.byKey) if (t in set2) result.add(t);
         return result;
     }
     

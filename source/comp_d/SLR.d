@@ -5,8 +5,8 @@ import std.typecons;
 import std.array, std.container, std.container.binaryheap;
 import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln, write;
-
-/+// grammars that passed to these functions must be augmented.
+/+
+// grammars that passed to these functions must be augmented.
 unittest {
     enum : Symbol {
         Expr, Term, Factor,
@@ -21,10 +21,11 @@ unittest {
         rule(Factor, lPar, Expr, rPar),
     ], ["Expr", "Term", "Factor", "digit", "+", "*", "(", ")"]);
     
-    //showSLRtableInfo(grammar_info);
+    showSLRtableInfo(grammar_info);
     writeln("## SLR unittest 1");
 }
 +/
+/+
 unittest {
     // this is not an SLR(1) grammar
     enum : Symbol {
@@ -42,7 +43,7 @@ unittest {
     showFollowTable(grammar_info);
     writeln("## SLR unittest 2");
 }
-
++/
 /+
 unittest {
     enum : Symbol {
@@ -113,22 +114,20 @@ unittest {
 }
 */
 
-// return closure
-package LR0ItemSet closure(const GrammarInfo grammar_info, inout LR0ItemSet item_set) {
-    auto result = new LR0ItemSet( (cast(LR0ItemSet) item_set).array);
+// replace item_set by its closure
+package void closure(const GrammarInfo grammar_info, LR0ItemSet item_set) {
     auto grammar = grammar_info.grammar;
     
-    // collect B such that [A -> s.Bt] in item_set to non_kernel_symbols
+    // first collect B such that [A -> s.Bt] in item_set to non_kernel_symbols
     auto non_kernel_symbols = grammar_info.symbolSet();
     
-    foreach (item; result.array) {
+    foreach (item; item_set.array) {
         // . is at the end
         if (item.index >= grammar[item.num].rhs.length) continue;
         // if [A -> s.Bt] is in item_set, add B -> .u to item_set
         auto symbol = grammar[item.num].rhs[item.index];
         if (symbol in grammar_info.nonterminals) non_kernel_symbols.add(symbol);
     }
-    
     while (true) {
         auto previous_cardinal = non_kernel_symbols.cardinal;
         
@@ -145,9 +144,8 @@ package LR0ItemSet closure(const GrammarInfo grammar_info, inout LR0ItemSet item
     
     // expand non_kernel_symbols
     foreach (i, rule; grammar) {
-        if (rule.lhs in non_kernel_symbols) result.add(LR0Item(i, 0));
+        if (rule.lhs in non_kernel_symbols) item_set.add(LR0Item(i, 0));
     }
-    return result;
 }
 
 package LR0ItemSet _goto(const GrammarInfo grammar_info, inout LR0ItemSet item_set, inout Symbol symbol) {
@@ -160,14 +158,16 @@ package LR0ItemSet _goto(const GrammarInfo grammar_info, inout LR0ItemSet item_s
         else if (grammar_info.grammar[item.num].rhs[item.index] == symbol) result.add(LR0Item(item.num, item.index+1));
     }
     
-    return closure(grammar_info, result);
+    closure(grammar_info, result);
+    return result;
 }
 
 // grammar_info.grammar is supposed to be augmented when passed to this function.
 // Then grammar_info.grammar[$-1] is [S' -> S]
 // and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
 package LR0ItemSet[] canonicalLR0Collection(const GrammarInfo grammar_info) {
-    auto item_set_0 = grammar_info.closure( new LR0ItemSet(LR0Item(grammar_info.grammar.length-1,0)) );
+    auto item_set_0 = new LR0ItemSet(LR0Item(grammar_info.grammar.length-1,0));
+    grammar_info.closure( item_set_0 );
     auto result = new LR0ItemSetSet (item_set_0);
     
     // these does not contain S'.

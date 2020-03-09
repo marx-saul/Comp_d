@@ -25,21 +25,24 @@ alias EntryIndexSet = Set!(EntryIndex, (a,b) => a.state < b.state || (a.state ==
 // (indeed, SLR/LALR/LRtableInfo returns a LRTableInfo whose starting state is 0.)
 class LRTable {
     private Symbol max_symbol_number;
-    private State  state_length;
     public  State  state_num() @property inout {
-        return state_length;
+        return table.length;
     }
     
     public LREntry[][] table;
     
     this(State state_num, Symbol msyn) {
         this.max_symbol_number = msyn;
-        this.state_length      = state_num;
         // reserve
         table.length = state_num;
         // initialize
         foreach (state; 0 .. state_num) 
             table[state].length = msyn+2;    // consider end_of_file_ = -2
+    }
+    
+    package void addState() {
+        table.length += 1;
+        table[$-1].length = max_symbol_number+2;
     }
     
     // return the index of symbol accessing index
@@ -102,6 +105,13 @@ class LRTableInfo {
             foreach (symbol; 0 .. msyn+2) set_data[state][symbol] = new LREntrySet();
         }
         conflict_index_set = new EntryIndexSet();
+    }
+    
+    package void addState() {
+        table.addState();
+        set_data.length += 1;
+        set_data[$-1].length = table.max_symbol_number+2;
+        foreach (symbol; 0 .. table.max_symbol_number+2) set_data[$-1][symbol] = new LREntrySet();
     }
     
     // return the set
