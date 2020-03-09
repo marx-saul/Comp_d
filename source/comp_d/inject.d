@@ -126,6 +126,9 @@ template injectParser(
     else static if (type.among!("canonical-LR", "canonical LR")) {
         static const table_info = LRtableInfo(grammar_info);
     }
+    else static if (type.among!("minimal-LR", "weak-minimal-LR", "minimal LR", "weak minimal LR")) {
+        static const table_info = weakMinLRtableInfo(grammar_info);
+    }
     else
         static assert(0, "No parser type " ~ type);
     

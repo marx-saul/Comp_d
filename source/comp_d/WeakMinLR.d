@@ -38,7 +38,7 @@ unittest {
     ], ["X", "Y", "Z", "T", "W", "V", "a", "b", "c", "d", "e", "t", "u"]);
     
     import comp_d.LR;
-    static const table_info = weakMinimalLRtable(grammar_info);
+    static const table_info = weakMinimalLRtableInfo(grammar_info);
     showWeakMinimalLRtableInfo(grammar_info);
     
     writeln("## WeakMinLR unittest 1");
@@ -138,7 +138,7 @@ package ItemGroupSet _goto(const GrammarInfo grammar_info, inout ItemGroupSet it
     return result;
 }
 
-LRTableInfo weakMinimalLRtable(const GrammarInfo grammar_info) {
+LRTableInfo weakMinimalLRtableInfo(const GrammarInfo grammar_info) {
     auto grammar = grammar_info.grammar;
     LRTableInfo result = new LRTableInfo(1, grammar_info.max_symbol_num);
     

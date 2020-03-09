@@ -8,10 +8,11 @@ User-defined conflict resolving rules. (LRTable.d)
 
 Make an interface for LRTable. (LRTable.d)
 
-Implement minimal LR(1) algorithm (IELR(1) if vigorous enough).
+Implement Pager's minimal LR(1) algorithm (strong-compatibility) (and IELR(1) if vigorous enough).
 
 ## Others
 Any improvement suggests/advices/requests are welcome.
 
 ### History
+v0.2.0 Pager's minimal LR(1) algorithm (weak-compatibility) implemented.
 v0.1.0 First publish.
