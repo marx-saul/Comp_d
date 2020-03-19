@@ -30,7 +30,7 @@ struct DSLRule {
     string label;   // label of the rule
     string lhs;     // lhs
     string[] rhs;   // rhs
-    //string[] name;  /** 'name' */
+    string[] name;  /** 'name' */
 }
 
 static immutable special_tokens = ",|>:;@()";
@@ -135,7 +135,7 @@ DSLRule parseRhs(ref string token, string lhs, string text, ref size_t index, re
             assert(0, "Line breaks in a single sequence before" ~ token ~ ". Did you forget ',' or '|' at the end? Line Number=" ~ to!string(line_num) );
         }
         
-        /* * 'name'
+        // 'name'
         if (token == "(") {
             token = nextToken(text, index, line_num);
             if (!isIdentifier(token)) { assert(0, "Identifier must come after '('. index=" ~ to!string(index)); }
@@ -145,7 +145,6 @@ DSLRule parseRhs(ref string token, string lhs, string text, ref size_t index, re
             token = nextToken(text, index, line_num);
         }
         else { result.name ~= ""; }
-        */
     }
     
     return result;

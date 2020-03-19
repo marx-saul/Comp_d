@@ -2,85 +2,98 @@ module comp_d.parser;
 
 import comp_d.data, comp_d.tool, comp_d.LRTable;
 
+import std.traits;
 import std.range, std.array;
 import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln;
 import std.conv: to;
 
-// disposable parser class (one class instance per one parse)
-class Parser {
-    private GrammarInfo _grammar_info_;
-    private LRTableInfo _table_info_;
+unittest {
+    enum : Symbol {
+        Expr, Expr_, Term, Term_, Factor,
+        digit, add, mul, lPar, rPar
+    }
+    static const grammar_info = new GrammarInfo([
+        rule(Expr, Term, Expr_),
+        rule(Expr_, add, Term, Expr_),
+        rule(Expr_, empty_),
+        rule(Term, Factor, Term_),
+        rule(Term_, mul, Factor, Term_),
+        rule(Term_, empty_),
+        rule(Factor, digit),
+        rule(Factor, lPar, Expr, rPar),
+    ], ["Expr", "Expr'", "Term", "Term'", "Factor", "id", "+", "*", "(", ")"]);
     
-    this(inout GrammarInfo g_i, inout LRTableInfo t_i) {
-        _grammar_info_ = cast(GrammarInfo) g_i;
-        _table_info_   = cast(LRTableInfo) t_i;
-    }
+    import comp_d.SLR: SLRtableInfo;
+    static const table_info = SLRtableInfo(grammar_info);
     
-    // return which action the parser did.
-    private Action oneStep(Symbol token, ref State[] stack) {
-        auto table = _table_info_.table;
-        auto grammar = _grammar_info_.grammar;
-        auto entry = table[stack[$-1], token];
-        
-        switch (entry.action) {
-            case Action.shift:
-                stack ~= entry.num;
-                shift();
-            break;
-        
-            case Action.reduce:
-                auto rule = grammar[entry.num];
-                // empty generating rule
-                if (!(rule.rhs.length == 1 && rule.rhs[0] == empty_))
-                    // reduce (pop rule.rhs.length states)
-                    stack.length -= rule.rhs.length;
-                    
-                // new top
-                auto state2 = stack[$-1];
-                // push goto(state2, rule.lhs);
-                if (table[state2, rule.lhs].action == Action.goto_) { stack ~= table[state2, rule.lhs].num; }
-                else { assert(0); }
-                reduce(entry.num);
-            break;
-            
-            case Action.accept:
-                accept();
-            break;
-                
-            case Action.error:
-                error(stack[$-1]);
-            break;
-                
-            default:
-                assert(0, to!string(entry.action));
-        }
-        return entry.action;
-    }
+    const Symbol[] inputs1 = [digit, add, lPar, digit, add, digit, mul, digit, rPar];
+    const Symbol[] inputs2 = [lPar, digit, rPar, rPar];
     
-    // you have to push end_of_file_.
-    // -1 : continue, 0 : accept, 1 : error, -2 : nonterminal pushed
-    private State[] symbol_stack = [0];
-    public int pushToken(Symbol token) {
-        Action action;
-        do {
-            if (token in _grammar_info_.nonterminals) return -2;
-            action = oneStep(token, symbol_stack);
-        } while (action == Action.reduce);
-        
-        if      (action == Action.accept) { return 0; }
-        else if (action == Action.error ) { return 1; }
-        else { return -1; }
-    }
+    static assert ( !table_info.is_conflict );
+    static assert ( parse(grammar_info.grammar, table_info.table, inputs1) );
+    static assert (!parse(grammar_info.grammar, table_info.table, inputs2) );
+    static assert ( parse(grammar_info.grammar, table_info.table, [digit, add, digit, mul, lPar, digit, add, digit, rPar]) );
     
-    protected void accept() {
-    }
-    protected void reduce(size_t) {
-    }
-    protected void error(State) {
-    }
-    protected void shift() {
-    }
-
+    writeln("## parser.d unittest 1");
 }
 
+enum bool isSymbolInput(T) = 
+    isInputRange!T &&
+    (
+        is(ReturnType!((T t) => t.front()) == Symbol) ||
+        is(ReturnType!((T t) => t.front()) == const Symbol) ||
+        is(ReturnType!((T t) => t.front()) == inout Symbol) ||
+        is(ReturnType!((T t) => t.front()) == inout const Symbol)
+    );
+
+// one step of LR parser routine
+// you have to push end_of_file_.
+LREntry oneStep(inout const Grammar grammar, inout const LRTable table, Symbol token, ref State[] stack) {
+    auto entry = table[stack[$-1], token];
+
+    switch (entry.action) {
+        case Action.shift:
+            stack ~= entry.num;
+        return entry;
+    
+        case Action.reduce:
+            auto rule = grammar[entry.num];
+            // empty generating rule
+            if (!(rule.rhs.length == 1 && rule.rhs[0] == empty_))
+                // reduce (pop rule.rhs.length states)
+                stack.length -= rule.rhs.length;
+                
+            // new top
+            auto state2 = stack[$-1];
+            // push goto(state2, rule.lhs);
+            if (table[state2, rule.lhs].action == Action.goto_) { stack ~= table[state2, rule.lhs].num; }
+            else { assert(0); }
+        break;
+        
+        case Action.accept:
+        break;
+            
+        case Action.error:
+        break;
+            
+        default:
+            assert(0);
+    }
+        
+    return entry;
+}
+
+bool parse(Range)(inout const Grammar grammar, inout const LRTable table, Range input)
+    if ( isSymbolInput!Range )
+{
+    State[] stack = [0];
+    while (true) {
+        auto result = oneStep(grammar, table, input.empty ? end_of_file_ : input.front, stack);
+        if      (result.action == Action.shift)  input.popFront();
+        else if (result.action == Action.reduce) {}
+        else if (result.action == Action.accept) return true;
+        else if (result.action == Action.error)  return false;
+    }
+    
+}

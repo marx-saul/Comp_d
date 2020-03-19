@@ -362,8 +362,8 @@ void showWeakMinimalLRtableInfo(const GrammarInfo grammar_info) {
     // reduce
     foreach (i, item_group_set; state_list) {
         foreach (item; item_group_set.keys) {
-            // . is not at the extreme right
-            if (item.index < grammar[item.num].rhs.length || (item.index == 0 && grammar[item.num].rhs[0] == empty_)) continue;
+            // . is not at the extreme right and it is not A -> .ε
+            if (item.index < grammar[item.num].rhs.length && !(item.index == 0 && grammar[item.num].rhs[0] == empty_)) continue;
             else
                 foreach (sym; item_group_set[item].array) {
                     // not S'

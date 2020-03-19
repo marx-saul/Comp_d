@@ -11,14 +11,14 @@ unittest {
     alias grammar = defineGrammar!(`
         S >
             @label1  A B a b |
-            @label2_ B B a A |
+            @label2_ B(_1) B(_2) a A |
             ;
         A : 
             a |
             empty |
             ;
         B :
-            @_label3 b b B,
+            @_label3 b(_1) b(_2) B,
             b
             ;
     `);
@@ -73,7 +73,7 @@ template defineGrammar(alias string text) {
         return grammar_info.nameOf(sym);
     }+/
     
-    string TokenDeclarations() @property {
+    string tokenDeclarations() @property {
         string result = " ";
         foreach (i; 0 .. grammar_info.max_symbol_num + 1) {
             if (i in grammar_info.terminals) { result ~= symbol_names[i] ~ " = " ~ to!string(i) ~ ", "; }
