@@ -11,7 +11,7 @@ unittest {
     // CTFE check
     static const aatree = new AATree!int(3, 9, 4);
     aatree.test();
-    static assert ( equal(aatree.array, [3, 4, 9]) );
+    static assert ( equal(aatree.keys, [3, 4, 9]) );
     static assert ( !aatree.empty );
     static assert ( aatree.front == 3 );
     static assert ( aatree.hasKey(9) );
@@ -21,15 +21,15 @@ unittest {
     auto aatree2 = new AATree!int(3, 9, 4);
     aatree2.insert(9, -1, 2, 6);
     aatree2.remove(2, 4, 4, 10);
-    assert ( equal(aatree2.array, [-1, 3, 6, 9]) );
+    assert ( equal(aatree2.keys, [-1, 3, 6, 9]) );
     assert ( aatree2.hasKey(-1) && !aatree2.hasKey(2) );
     assert ( aatree2.cardinal == 4 );
     writeln("## AATree unittest 1");
 }
 
-// T is key, S is value
-class AATree(T, alias less = (a,b) => a < b, S = bool)
-    if ( is(typeof(less(T.init, T.init))) )
+// K is key, V is value
+class AATree(K, alias less = (a,b) => a < b, V = bool)
+    if ( is(typeof(less(K.init, K.init))) )
 {
     // if left and right are null (i.e., the node is a leaf), level = 1
     // left.level = this.level - 1
@@ -37,24 +37,27 @@ class AATree(T, alias less = (a,b) => a < b, S = bool)
     // right.right, right.left < this.level
     // if level > 1, then left !is null and right !is null
     private struct Node {
-        T val;
+        K key;
         Node* left, right;
         size_t level;
-        S s;
+        V value;
     }
     private Node* root;
     
-    this(T[] args...) {
+    this(K[] args...) {
         insert(args);
     }
     
-    // array returns the array of the elements in the ascending order
-    public inout(T)[] array() @property inout const {
+    // returns the keys of the elements in the ascending order
+    public inout(K)[] keys() @property inout const {
         return array_(cast(inout(Node*)) root);
     }
-    private inout(T)[] array_(inout(Node*) node) inout const {
+    deprecated("Use keys() instead.") public inout(K)[] array() @property inout const {
+        return array_(cast(inout(Node*)) root);
+    }
+    private inout(K)[] array_(inout(Node*) node) inout const {
         if (node == null) return [];
-        return array_(node.left) ~ [node.val] ~ array_(node.right);
+        return array_(node.left) ~ [node.key] ~ array_(node.right);
     }
     // array.length
     private size_t cardinal_;
@@ -65,8 +68,8 @@ class AATree(T, alias less = (a,b) => a < b, S = bool)
     public bool empty() @property inout {
         return root == null;
     }
-    public T front() @property inout {
-        return getMinimum(cast(Node*) root).val;
+    public K front() @property inout {
+        return getMinimum(cast(Node*) root).key;
     }
     // get the minumum node of the tree with the root 'node'
     private Node* getMinimum(Node* node) inout {
@@ -76,32 +79,32 @@ class AATree(T, alias less = (a,b) => a < b, S = bool)
         return node;
     }
     
-    private Node* hasKey(inout T val, Node* node) inout {
+    private Node* hasKey(inout K key, Node* node) inout {
         while (true) {
             // not found
             if (node == null) return null;
             // found
-            if (node.val == val) return node;
+            if (node.key == key) return node;
             
             // go left
-            if      (less(val, node.val)) node = node.left;
+            if      (less(key, node.key)) node = node.left;
             // go right
-            else if (less(node.val, val)) node = node.right;
+            else if (less(node.key, key)) node = node.right;
         }
     }
-    public bool hasKey(inout T val) inout {
-        return hasKey(val, cast(Node*) root) != null;
+    public bool hasKey(inout K key) inout {
+        return hasKey(key, cast(Node*) root) != null;
     }
-    public ref S getValue(inout T val) inout const {
-        return hasKey(val, cast(Node*) root).s;
+    public ref V getValue(inout K key) inout const {
+        return hasKey(key, cast(Node*) root).value;
     }
     
     // [] overload
-    public ref S opIndex(T index) inout const {
+    public ref V opIndex(K index) inout const {
         return getValue(index);
     }
     // aatree[index] = s
-    public S opIndexAssign(S s, T index) {
+    public V opIndexAssign(V s, K index) {
         root = insert(index, root, s);
         return s;
     }
@@ -143,41 +146,41 @@ class AATree(T, alias less = (a,b) => a < b, S = bool)
     }
     /////////////
     // insert
-    private Node* insert(T val, Node* node, S s = S.init) {
+    private Node* insert(K key, Node* node, V value = V.init) {
         if      (node == null) {
             auto new_node = new Node();
-            new_node.val = val, new_node.level = 1, new_node.s = s; 
+            new_node.key = key, new_node.level = 1, new_node.value = value; 
             cardinal_++;
             return new_node;
         }
-        else if (less(val, node.val)) {
-            node.left  = insert(val, node.left, s);
+        else if (less(key, node.key)) {
+            node.left  = insert(key, node.left, value);
         }
-        else if (less(node.val, val)) {
-            node.right = insert(val, node.right, s);
+        else if (less(node.key, key)) {
+            node.right = insert(key, node.right, value);
         }
         else {
-            node.s = s;
+            node.value = value;
         }
         node = skew (node);
         node = split(node);
         return node;
     }
     
-    public void insert(T[] vals...) {
-        foreach (val; vals)
-            root = insert(val, root);
+    public void insert(K[] keys...) {
+        foreach (key; keys)
+            root = insert(key, root);
     }
     
     /////////////
     // remove
-    public Node* remove(T val, Node* node) {
+    public Node* remove(K key, Node* node) {
         if (node == null)
             return null;
-        else if (less(node.val, val))
-            node.right = remove(val, node.right);
-        else if (less(val, node.val))
-            node.left  = remove(val, node.left);
+        else if (less(node.key, key))
+            node.right = remove(key, node.right);
+        else if (less(key, node.key))
+            node.left  = remove(key, node.left);
         else {
             // leaf
             if (node.left == null && node.right == null) {
@@ -186,13 +189,13 @@ class AATree(T, alias less = (a,b) => a < b, S = bool)
             }
             else if (node.left == null) {
                 auto R = successor(node);
-                node.right = remove(R.val, node.right);
-                node.val = R.val;
+                node.right = remove(R.key, node.right);
+                node.key = R.key;
             }
             else {
                 auto L = predecessor(node);
-                node.left = remove(L.val, node.left);
-                node.val = L.val;
+                node.left = remove(L.key, node.left);
+                node.key = L.key;
             }
         }
         // 
@@ -236,9 +239,9 @@ class AATree(T, alias less = (a,b) => a < b, S = bool)
         return node;
     }
     
-    public void remove(T[] vals...) {
-        foreach (val; vals)
-            root = remove(val, root);
+    public void remove(K[] keys...) {
+        foreach (key; keys)
+            root = remove(key, root);
     }
     
     version (unittest) {
@@ -249,7 +252,7 @@ class AATree(T, alias less = (a,b) => a < b, S = bool)
                 //   v   v     v          v      v   v
                 //   a   b     r          a      b   r
                 Node n, l, r, a, b;
-                //n.val = 0, l.val = 1, r.val = 2, a.val = 3, b.val = 4;
+                //n.key = 0, l.key = 1, r.key = 2, a.key = 3, b.key = 4;
                 n.left = &l, n.right = &r, l.left = &a, l.right = &b;
                 a.level = 1, b.level = 1, r.level = 1, l.level = 2, n.level = 2;
                 
@@ -270,7 +273,7 @@ class AATree(T, alias less = (a,b) => a < b, S = bool)
                 //                         v   v
                 //                         a   b
                 Node n, x, r, a, b;
-                //n.val = 0, x.val = 1, r.val = 2, a.val = 3, b.val = 4;
+                //n.key = 0, x.key = 1, r.key = 2, a.key = 3, b.key = 4;
                 n.left = &a, n.right = &r, r.left = &b, r.right = &x;
                 a.level = 1, b.level = 1, n.level = 2, r.level = 2, x.level = 2;
                 

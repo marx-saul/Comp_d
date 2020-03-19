@@ -31,7 +31,7 @@ unittest {
 }
 */
 bool isSameState(ItemGroupSet a, ItemGroupSet b) {
-    auto a_core = a.array, b_core = b.array;
+    auto a_core = a.keys, b_core = b.keys;
     
     // core equality check
     if (a_core.length != b_core.length) return false;
@@ -49,7 +49,7 @@ bool isSameState(ItemGroupSet a, ItemGroupSet b) {
 
 // check whether they have the same core and weakly compatible
 bool isWeaklyCompatible(const ItemGroupSet a, const ItemGroupSet b) {
-    auto a_core = a.array, b_core = b.array;
+    auto a_core = a.keys, b_core = b.keys;
     
     // core equality check
     if (a_core.length != b_core.length) return false;
@@ -80,7 +80,7 @@ package void closure(const GrammarInfo grammar_info, ItemGroupSet item_group_set
         
         // for all [A -> s.Bt, a] in item set and rule B -> u,
         // add [B -> .u, b] where a terminal symbol b is in FIRST(ta)
-        foreach (item; item_group_set.array) {
+        foreach (item; item_group_set.keys) {
             // . is at the last
             if (item.index >= grammar[item.num].rhs.length) continue;
             
@@ -115,7 +115,7 @@ package ItemGroupSet _goto(const GrammarInfo grammar_info, inout ItemGroupSet it
     auto result = new ItemGroupSet();
     // goto(item_set, symbol) is defined to be the closure of all items [A -> sX.t]
     // such that X = symbol and [A -> s.Xt] is in item_set.
-    foreach (item; item_group_set.array) {
+    foreach (item; item_group_set.keys) {
         // A -> s. (dot is at the end)
         if (item.index >= grammar_info.grammar[item.num].rhs.length) continue;
         else if (grammar_info.grammar[item.num].rhs[item.index] == symbol) result[LR0Item(item.num, item.index+1)] = item_group_set[item];
@@ -233,8 +233,8 @@ void showWeakMinimalLRtableInfo(const GrammarInfo grammar_info) {
             
             // initialize
             // enlarged item-groups and their lookaheads' difference by merging
-            auto enlarged = new ItemGroupSet(), core = state_list[index2].array;
-            assert (equal(core, item_set.array));
+            auto enlarged = new ItemGroupSet(), core = state_list[index2].keys;
+            assert (equal(core, item_set.keys));
             foreach (item; core) {
                 // . is at the extreme left
                 if (item.index == 0) continue;
@@ -274,7 +274,7 @@ void showWeakMinimalLRtableInfo(const GrammarInfo grammar_info) {
                 
                 //////////
                 // merge
-                foreach (item; difference_set.array) {
+                foreach (item; difference_set.keys) {
                     item_group[item] += difference_set[item];
                 }
                 // take its closure
@@ -299,7 +299,7 @@ void showWeakMinimalLRtableInfo(const GrammarInfo grammar_info) {
                 
                 // collect gotos of 'item_group' that will change
                 auto new_lookaheads = new AATree!(Symbol, (a,b) => a < b, ItemGroupSet);
-                foreach (item; difference_set.array) {
+                foreach (item; difference_set.keys) {
                     if (item.index >= grammar[item.num].rhs.length) continue;
                     
                     // the symbol immediately after the dot .
@@ -313,7 +313,7 @@ void showWeakMinimalLRtableInfo(const GrammarInfo grammar_info) {
                     new_lookaheads[sym][item2] = difference_set[item];
                 }
                 
-                foreach (sym; new_lookaheads.array) {
+                foreach (sym; new_lookaheads.keys) {
                     changed_states_queue ~= result.table[item_number, sym].num;
                     difference_queue ~= new_lookaheads[sym];
                     /*
@@ -361,7 +361,7 @@ void showWeakMinimalLRtableInfo(const GrammarInfo grammar_info) {
     
     // reduce
     foreach (i, item_group_set; state_list) {
-        foreach (item; item_group_set.array) {
+        foreach (item; item_group_set.keys) {
             // . is not at the extreme right
             if (item.index < grammar[item.num].rhs.length || (item.index == 0 && grammar[item.num].rhs[0] == empty_)) continue;
             else
@@ -379,7 +379,7 @@ void showWeakMinimalLRtableInfo(const GrammarInfo grammar_info) {
     // show collection
     foreach (i, item_set; state_list) {
         writeln("STATE-", i, " = {");
-        foreach_reverse (item; item_set.array) {
+        foreach_reverse (item; item_set.keys) {
             auto rule = grammar[item.num];
             if (item.num == grammar.length-1) write("\t\033[1m\033[31m", item.num, "\033[0m");
             else write("\t", item.num);

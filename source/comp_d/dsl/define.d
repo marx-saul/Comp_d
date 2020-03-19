@@ -9,13 +9,13 @@ import std.conv: to;
 
 unittest {
     alias grammar = defineGrammar!(`
-        S :
-            @label1  A B a b,
-            @label2_ B B a A,
+        S >
+            @label1  A B a b |
+            @label2_ B B a A |
             ;
         A : 
-            a,
-            empty,
+            a |
+            empty |
             ;
         B :
             @_label3 b b B,

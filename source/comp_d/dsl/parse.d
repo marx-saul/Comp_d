@@ -33,7 +33,7 @@ struct DSLRule {
     //string[] name;  /** 'name' */
 }
 
-static immutable special_tokens = ",:;@()";
+static immutable special_tokens = ",|>:;@()";
 
 unittest {
     //static const strset = new StringSet("sadfsdaf", "qwertyuiop", "09fjhgkve", "\n\n");
@@ -94,7 +94,7 @@ DSLRule[] parseRuleList(ref string token, string text, ref size_t index, ref siz
     auto lhs = token;
     
     token = nextToken(text, index, line_num);
-    if (token != ":") { assert(0, "':' is expected. Line Number=" ~ to!string(line_num) ); }
+    if (token != ":" && token != ">") { assert(0, "':' or '>' is expected. Line Number=" ~ to!string(line_num) ); }
     token = nextToken(text, index, line_num);
     
     DSLRule[] result;
@@ -103,11 +103,11 @@ DSLRule[] parseRuleList(ref string token, string text, ref size_t index, ref siz
         auto rule = parseRhs(token, lhs, text, index, line_num);
         result ~= rule;
         
-        if (token == ",") { token = nextToken(text, index, line_num); }
+        if (token == "," || token == "|") { token = nextToken(text, index, line_num); }
         
         if      (isIdentifier(token) || token == "@") continue;
         else if (token == ";") { token = nextToken(text, index, line_num); break; }
-        else assert(0, "',', ';', '@' or an identifier expected. Did you forget ';' at the last of some rule? Line Number=" ~ to!string(line_num) );
+        else assert(0, "',', '|', ';', '@' or an identifier expected. Did you forget ';' at the last of some rule? Line Number=" ~ to!string(line_num) );
     }
     
     return result;
@@ -132,7 +132,7 @@ DSLRule parseRhs(ref string token, string lhs, string text, ref size_t index, re
         auto previous_line_num = line_num;
         token = nextToken(text, index, line_num);
         if (previous_line_num < line_num && isIdentifier(token)) {
-            assert(0, "Line breaks in a single sequence before" ~ token ~ ". Did you forget ',' at the end? Line Number=" ~ to!string(line_num) );
+            assert(0, "Line breaks in a single sequence before" ~ token ~ ". Did you forget ',' or '|' at the end? Line Number=" ~ to!string(line_num) );
         }
         
         /* * 'name'

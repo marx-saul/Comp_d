@@ -56,7 +56,7 @@ unittest {
 class Set(T, alias less = (a,b)=>a<b)
     if ( is(typeof(less(T.init, T.init))) )
 {
-    private AATree!(T, less) aat;
+    private AATree!(T, less, bool) aat;
     // initialize
     public this(T[] args...) {
         aat = new AATree!(T, less)(args);
@@ -72,7 +72,7 @@ class Set(T, alias less = (a,b)=>a<b)
     
     // array, cardinal
     public inout(T)[] array() @property inout const {
-        return aat.array;
+        return aat.keys;
     }
     public size_t cardinal() @property inout {
         return aat.cardinal;
@@ -97,7 +97,7 @@ class Set(T, alias less = (a,b)=>a<b)
     public bool opBinary(string op)(inout Set!(T, less) rhs) inout
         if (op == "in")
     {
-        foreach(elem; aat.array) {
+        foreach(elem; aat.keys) {
             if (elem !in rhs) return false;
         }
         return true;
@@ -115,8 +115,8 @@ class Set(T, alias less = (a,b)=>a<b)
         if (op == "+")
     {
         auto result = new Set!(T, less)();
-        foreach (t; this.aat.array) result.add(t);
-        foreach (t; set2.aat.array) result.add(t);
+        foreach (t; this.aat.keys) result.add(t);
+        foreach (t; set2.aat.keys) result.add(t);
         return result;
     }
     
@@ -126,7 +126,7 @@ class Set(T, alias less = (a,b)=>a<b)
         if (op == "&")
     {
         auto result = new Set!(T, less)();
-        foreach (t; this.aat.array) if (t in set2) result.add(t);
+        foreach (t; this.aat.keys) if (t in set2) result.add(t);
         return result;
     }
     
@@ -136,20 +136,20 @@ class Set(T, alias less = (a,b)=>a<b)
         if (op == "-")
     {
         auto result = new Set!(T, less)();
-        foreach (t; this.aat.array) result.add(t);
-        foreach (t; set2.aat.array) result.remove(t);
+        foreach (t; this.aat.keys) result.add(t);
+        foreach (t; set2.aat.keys) result.remove(t);
         return result;
     }
     
     public Set!(T, less) opOpAssign(string op)(inout Set!(T, less) set2) {
         // operator "+=" overload
         static if (op == "+") {
-            foreach (t; set2.aat.array) this.add(t);
+            foreach (t; set2.aat.keys) this.add(t);
             return this;
         }
         // operator "-=" overload
         else if (op == "-") {
-            foreach (t; set2.aat.array) this.remove(t);
+            foreach (t; set2.aat.keys) this.remove(t);
             return this;
         }
         else assert(0, op ~ "= for Set is not implemented.");
