@@ -1,7 +1,6 @@
 //Staticly generate 
 module comp_d.inject;
 
-import comp_d.SLR, comp_d.LALR, comp_d.LR, comp_d.WeakMinLR;
 import comp_d.data, comp_d.tool, comp_d.LRTable;
 
 import std.range, std.array;
@@ -26,6 +25,7 @@ unittest {
         rule(Factor, digit),
         rule(Factor, lPar, Expr, rPar),
     ], ["Expr", "Expr'", "Term", "Term'", "Factor", "id", "+", "*", "(", ")"]);
+    import comp_d.SLR: SLRtableInfo;
     static const table_info = SLRtableInfo(grammar_info);
     
     const Symbol[] inputs1 = [digit, add, lPar, digit, add, digit, mul, digit, rPar];
@@ -114,6 +114,9 @@ template injectParser(
 )
     if ( is( typeof( { _accept(); _reduce(size_t.init); _error(State.init); _shift(); } ) ) )
 {
+    // generate table
+    import comp_d.SLR, comp_d.LALR, comp_d.LR, comp_d.WeakMinLR;
+    
     static if      (type == "SLR") {
         static const table_info = SLRtableInfo(grammar_info);
     }
