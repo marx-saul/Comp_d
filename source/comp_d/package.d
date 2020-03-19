@@ -12,4 +12,6 @@ public import comp_d.WeakMinLR;
 public import comp_d.parser;
 public import comp_d.inject;
 
+public import comp_d.parseTree;
+
 public import comp_d.dsl;

@@ -1,6 +1,5 @@
 module comp_d.parser;
 
-import comp_d.SLR, comp_d.LALR, comp_d.LR;
 import comp_d.data, comp_d.tool, comp_d.LRTable;
 
 import std.range, std.array;
@@ -8,7 +7,7 @@ import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln;
 import std.conv: to;
 
-// parser class (one class instance per one parse)
+// disposable parser class (one class instance per one parse)
 class Parser {
     private GrammarInfo _grammar_info_;
     private LRTableInfo _table_info_;

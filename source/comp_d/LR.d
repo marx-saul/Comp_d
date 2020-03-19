@@ -31,7 +31,7 @@ unittest {
         rule(R, L),
     ], ["S", "L", "R", "=", "*", "id"]);
     */
-    showLRtableInfo(grammar_info);
+    //showLRtableInfo(grammar_info);
     writeln("## LR unittest 1");
 }
 

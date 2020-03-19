@@ -27,6 +27,7 @@ unittest {
     ], ["S", "C", "c", "d"]);
     +/
     
+    /*
     enum : Symbol { X, Y, Z, T, W, V, a, b, c, d, e, t, u }
     static const grammar_info = new GrammarInfo([
         rule(X, a, Y, d), rule(X, a, Z, c), rule(X, a, T), rule(X, b, Y, e), rule(X, b, Z, d), rule(X, b, T),
@@ -36,10 +37,29 @@ unittest {
         rule(W, u, V),
         rule(V, empty_),           
     ], ["X", "Y", "Z", "T", "W", "V", "a", "b", "c", "d", "e", "t", "u"]);
+    */
+    enum : Symbol {
+        Expr, Expr_, Term, Term_, Factor,
+        digit, add, mul, lPar, rPar
+    }
+    static const grammar_info = new GrammarInfo([
+        rule(Expr, Term, Expr_),
+        rule(Expr_, add, Term, Expr_),
+        rule(Expr_, empty_),
+        rule(Term, Factor, Term_),
+        rule(Term_, mul, Factor, Term_),
+        rule(Term_, empty_),
+        rule(Factor, digit),
+        rule(Factor, lPar, Expr, rPar),
+    ], ["Expr", "Expr'", "Term", "Term'", "Factor", "id", "+", "*", "(", ")"]);
     
-    import comp_d.LR;
-    static const table_info = weakMinimalLRtableInfo(grammar_info);
+    //static const table_info = weakMinimalLRtableInfo(grammar_info);
     showWeakMinimalLRtableInfo(grammar_info);
+    
+    writeln("-----------------------------------------------------------------");
+    
+    import comp_d.SLR;
+    showSLRtableInfo(grammar_info);
     
     writeln("## WeakMinLR unittest 1");
 }
@@ -269,8 +289,8 @@ LRTableInfo weakMinimalLRtableInfo(const GrammarInfo grammar_info) {
     // reduce
     foreach (i, item_group_set; state_list) {
         foreach (item; item_group_set.keys) {
-            // . is not at the extreme right
-            if (item.index < grammar[item.num].rhs.length || (item.index == 0 && grammar[item.num].rhs[0] == empty_)) continue;
+            // . is not at the extreme right and it is not A -> .ε
+            if (item.index < grammar[item.num].rhs.length && !(item.index == 0 && grammar[item.num].rhs[0] == empty_)) continue;
             else
                 foreach (sym; item_group_set[item].array) {
                     // not S'

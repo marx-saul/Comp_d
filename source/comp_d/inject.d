@@ -1,7 +1,7 @@
 //Staticly generate 
 module comp_d.inject;
 
-import comp_d.SLR, comp_d.LALR, comp_d.LR;
+import comp_d.SLR, comp_d.LALR, comp_d.LR, comp_d.WeakMinLR;
 import comp_d.data, comp_d.tool, comp_d.LRTable;
 
 import std.range, std.array;
@@ -34,8 +34,8 @@ unittest {
     alias parser2 = generateParser!(grammar_info, table_info);
     static assert (parser2.parse(inputs2) == 1);     // error
     
-    alias parser1 = injectParser!(grammar_info, "SLR", {writeln("accept");}, (x){/*reduce*/}, (x){writeln("error");});
-    assert ( parser1.parse(inputs1) == 0);
+    alias parser1 = injectParser!(grammar_info, "weak minimal LR", {writeln("accept");}, (x){/*reduce*/}, (x){writeln("error");});
+    assert ( parser1.parse(inputs1) == 0 );
     writeln("## parse.d unittest 1");
 }
 
@@ -127,7 +127,7 @@ template injectParser(
         static const table_info = LRtableInfo(grammar_info);
     }
     else static if (type.among!("minimal-LR", "weak-minimal-LR", "minimal LR", "weak minimal LR")) {
-        static const table_info = weakMinLRtableInfo(grammar_info);
+        static const table_info = weakMinimalLRtableInfo(grammar_info);
     }
     else
         static assert(0, "No parser type " ~ type);
