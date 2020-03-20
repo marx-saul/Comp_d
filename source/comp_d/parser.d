@@ -31,9 +31,9 @@ unittest {
     const Symbol[] inputs2 = [lPar, digit, rPar, rPar];
     
     static assert ( !table_info.is_conflict );
-    static assert ( parse(grammar_info.grammar, table_info.table, inputs1) );
-    static assert (!parse(grammar_info.grammar, table_info.table, inputs2) );
-    static assert ( parse(grammar_info.grammar, table_info.table, [digit, add, digit, mul, lPar, digit, add, digit, rPar]) );
+    static assert ( parse(grammar_info, table_info.table, inputs1) );
+    static assert (!parse(grammar_info.grammar, table_info, inputs2) );
+    static assert ( parse(grammar_info, table_info, [digit, add, digit, mul, lPar, digit, add, digit, rPar]) );
     
     writeln("## parser.d unittest 1");
 }
@@ -49,7 +49,7 @@ enum bool isSymbolInput(T) =
 
 // one step of LR parser routine
 // you have to push end_of_file_.
-LREntry oneStep(inout const Grammar grammar, inout const LRTable table, Symbol token, ref State[] stack) {
+LREntry oneStep(const Grammar grammar, const LRTable table, Symbol token, ref State[] stack) {
     auto entry = table[stack[$-1], token];
 
     switch (entry.action) {
@@ -84,7 +84,19 @@ LREntry oneStep(inout const Grammar grammar, inout const LRTable table, Symbol t
     return entry;
 }
 
-bool parse(Range)(inout const Grammar grammar, inout const LRTable table, Range input)
+
+LREntry oneStep(const GrammarInfo grammar_info, const LRTable table,          Symbol token, ref State[] stack) {
+    return oneStep(grammar_info.grammar, table,            token, stack);
+}
+LREntry oneStep(const Grammar grammar,          const LRTableInfo table_info, Symbol token, ref State[] stack) {
+    return oneStep(grammar,              table_info.table, token, stack);
+}
+LREntry oneStep(const GrammarInfo grammar_info, const LRTableInfo table_info, Symbol token, ref State[] stack) {
+    return oneStep(grammar_info.grammar, table_info.table, token, stack);
+}
+
+
+bool parse(Range)(const Grammar grammar, const LRTable table, Range input)
     if ( isSymbolInput!Range )
 {
     State[] stack = [0];
@@ -96,4 +108,19 @@ bool parse(Range)(inout const Grammar grammar, inout const LRTable table, Range 
         else if (result.action == Action.error)  return false;
     }
     
+}
+bool parse(Range)(const GrammarInfo grammar_info, const LRTable table,          Range input)
+    if ( isSymbolInput!Range )
+{
+    return parse!(Range)(grammar_info.grammar,           table, input);
+}
+bool parse(Range)(const Grammar grammar,          const LRTableInfo table_info, Range input)
+    if ( isSymbolInput!Range )
+{
+    return parse!(Range)(grammar,              table_info.table, input);
+}
+bool parse(Range)(const GrammarInfo grammar_info, const LRTableInfo table_info, Range input)
+    if ( isSymbolInput!Range )
+{
+    return parse!(Range)(grammar_info.grammar, table_info.table, input);
 }

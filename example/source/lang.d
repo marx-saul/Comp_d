@@ -4,7 +4,7 @@ import comp_d;
 import std.stdio, std.ascii;
 import std.array;
 import std.conv: to;
-
+/+
 alias grammar = defineGrammar!(`
     Expr:
         @add Expr add Term,
@@ -136,9 +136,10 @@ Token[] lex(string str) {
     }
     //writeln(result);
     return result;
-}
+}+/
 
 int test_lang(string str) {
-    auto parser = new Parser;
-    return parser.eval(str);
+    //auto parser = new Parser;
+    //return parser.eval(str);
+    return 0;
 }

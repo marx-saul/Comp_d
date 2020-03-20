@@ -28,19 +28,20 @@ unittest {
     `);
     mixin("enum : Symbol { " ~ grammar.tokenDeclarations ~ "}");
     
-    alias parser = injectParser!(grammar.grammar_info, "SLR");
+    alias parser = Parser!(grammar.grammar_info, "SLR");
     static assert ( parser([digit, add, digit, mul, lPar, digit, add, digit, rPar]) );
     static assert (!parser([lPar, lPar, digit, add, digit, rPar, add, digit]) );
     writeln("## inject.d unittest 1");
 }
 
-template injectParser(
+
+template Parser(
     alias const GrammarInfo grammar_info, string type = "LALR",
     string module_name = __MODULE__, string file_name = __FILE__, size_t line = __LINE__
 )
 {
     mixin(table_info_injection_declaration);
-    bool injectParser(Range)(Range input)
+    bool Parser(Range)(Range input)
         if ( isSymbolInput!Range )
     {
         return parse(grammar_info.grammar, table_info.table, input);

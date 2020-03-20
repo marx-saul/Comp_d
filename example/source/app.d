@@ -1,12 +1,14 @@
 // Reference: Compilers: Principles, Techniques, and Tools, written by Alfred V. Aho, Monica S. Lam, Ravi Sethi, and Jeffrey D. Ullman
-import expression, lang;
+
+import comp_d;
 import std.stdio, std.typecons;
 import std.range, std.array, std.container;
 import std.algorithm, std.algorithm.comparison;
 
 void main()
 {
-	/+ // expression.d
+	// expression.d
+	import expression;
     static assert (eval("26 - (32*2 - 23)") == -15);
     writeln("Write expressions. 'exit' to end.");
     while (true) {
@@ -14,38 +16,6 @@ void main()
         if (str == "exit\n") break;
         else writeln(" = ", eval(str));
     }
-    +/
-    
-    // lang.d
-    writeln(test_lang("2 * 29 - 2*2*2*2"));
-    static assert (test_lang("2 * 29 - 2*2*2*2") == 42);
-    
-    /+ // DSL
-    alias grammar2 = defineGrammar!(`
-        S :
-        @one_step
-            S l S r,
-        @empty
-            empty,
-        ;
-    `);
-    static const left = grammar2.numberOf("l"), right = grammar2.numberOf("r");
-    
-    alias parser2 = injectParser!(grammar2.grammar_info, "SLR");
-    static assert (parser2.parse([left, left, right, left, right, right]) == 0);    // accept
-    static assert (parser2.parse([left, left, right, left, right]) == 1);           // error
-    static assert (parser2.parse([right, left]) == 1);                              // error
-    static assert (parser2.parse!(Symbol[])([]) == 0);                              // accept
-    
-    int pair_num;
-    alias parser2_2 = injectParser!(grammar2.grammar_info, "SLR",
-        { /* accept */ },
-        (x) { if (grammar2.labelOf(x) == "one_step") {pair_num++;} },  // reduce
-        (x) { /* error */ }
-    );
-    parser2_2.parse([left, left, right, left, left, left, right, right, right, right]);
-    assert (pair_num == 5);
-    +/
 }
 
 /+ // You can copy&paste these codes and remove the comment out to see the static parsing.
@@ -65,7 +35,7 @@ void main()
         rule(Factor, digit),
         rule(Factor, lPar, Expr, rPar),
     ), ["Expr", "Expr'", "Term", "Term'", "Factor", "id", "+", "*", "(", ")"]);
-    Symbol[] inputs = [digit, add, lPar, digit, add, digit, mul, digit, rPar];
+    static assert ( parse(grammar_info.grammar, table_info.table, [digit, add, lPar, digit, add, digit, mul, digit, rPar]) );
     //showLALRtableInfo(grammar_info);
     
     /+ // EXAMPLE 2
@@ -81,30 +51,6 @@ void main()
         rule(A, c),
         rule(B, c),
     ), ["S", "A", "B", "a", "b", "c", "d", "e"]);
-    Symbol[] inputs = [star, star, star, id, eq, star, star, id, end_of_file_];
+    static assert ( parse(grammar_info.grammar, table_info.table, [a, c, d]) );
     +/
-    
-    /+ // EXAMPLE 3
-    enum : Symbol {
-        S, L, R, eq, star, id
-    }
-    static const grammar_info = new GrammarInfo(grammar(
-        rule(S, L, eq, R),
-        rule(S, R),
-        rule(L, star, R),
-        rule(L, id),
-        rule(R, L),
-    ), ["S", "L", "R", "=", "*", "id"]);
-    Symbol[] inputs = [star, star, star, id, eq, star, star, id, end_of_file_];
-    +/
-    
-    static const table_info = LALRtableInfo(grammar_info);
-    //static int x = 0;
-    assert(parse!({writeln("accept");}, (x){/+ reduce +/}, (x) {writeln("error");})(grammar_info.grammar, table_info.table, inputs) == 0);  // accept
-    static const Symbol[] inputs2 = [lPar, digit, rPar, rPar];
-    alias parser = generateParser!(grammar_info, table_info);
-    static assert (parser.parse(inputs2) == 1);             // parsing result is error.
-    
-    alias parser2 = injectParser!(grammar_info, "SLR");
-    static assert (parser2.parse(inputs2) == 1);
 +/

@@ -5,172 +5,139 @@ import std.stdio, std.ascii;
 import std.array;
 import std.conv: to;
 
-// definition of the grammar
+// definition of grammar
+alias grammar = defineGrammar!(`
+    Expr:
+        @add Expr add Term,
+        @sub Expr sub Term,
+             Term;
+    
+    Term:
+        @mul Term mul Factor,
+        @div Term div Factor,
+             Factor;
+    
+    Factor:
+        @_Expr_ lPar Expr rPar,
+                id,
+        @uadd   add id,
+        @usub   sub id;
+`);
+// symbol declarations
+mixin ("enum : Symbol {" ~ grammar.tokenDeclarations ~ "}");
 
-enum : Symbol {
-    Expr, Term, Factor,
-    id, add, sub, mul, div, lPar, rPar
-}
-
-static const grammar_info = new GrammarInfo([
-    rule(Expr, Expr, add, Term),
-    rule(Expr, Expr, sub, Term),
-    rule(Expr, Term),
-    rule(Term, Term, mul, Factor),
-    rule(Term, Term, div, Factor),
-    rule(Term, Factor),
-    rule(Factor, lPar, Expr, rPar),
-    rule(Factor, id),
-    rule(Factor, add, id),
-    rule(Factor, sub, id),
-], ["Expr", "Term", "Factor", "id", "+", "-", "*", "/"]);
-
+static const table_info = SLRtableInfo(grammar.grammar_info);
 
 // you can make a syntax tree using left and right
 struct Node {
-    int value;
     Symbol symbol;
-    Node* left, right;
+    Tree[] children;
+    size_t rule;
+    int value;
     this(Symbol s, int v) { value=v, symbol=s; }
     this(Symbol s) { symbol = s; }
 }
 
-class Lexer {
-    public Node[] tokens;
-    this() {
-        tokens = [Node(id, 12), Node(add), Node(id, 23), Node(mul), Node(id, 2), Node(sub), Node(id, 16)];
-    }
-    // lexer
-    this(string str) {
-        // generate tokens.
-        size_t index;
-        while (index < str.length) {
-            char c = str[index];
-            // ignore space
-            if (isWhite(c)) { index++; continue; }
-            
-            // digit
-            if (isDigit(c)) {
-                string d_str;
-                while (index < str.length && isDigit(str[index])) {
-                    d_str ~= str[index];
-                    index++;
-                }
-                //writeln(d_str);
-                tokens ~= Node(id, to!int(d_str));
-                continue;
+// lexer
+Node[] lex(string str) {
+    Node[] tokens;
+    
+    // generate tokens.
+    size_t index;
+    while (index < str.length) {
+        char c = str[index];
+        // ignore space
+        if (isWhite(c)) { index++; continue; }
+        
+        // digit
+        if (isDigit(c)) {
+            string d_str;
+            while (index < str.length && isDigit(str[index])) {
+                d_str ~= str[index];
+                index++;
             }
-            
-            // +-*/()
-            auto sym =
-                c == '+' ? add :
-                c == '-' ? sub :
-                c == '*' ? mul :
-                c == '/' ? div :
-                c == '(' ? lPar:
-                c == ')' ? rPar:
-                -1;
-            if (sym != -1) tokens ~= Node(sym);
-            else writeln("Invalid token: " ~ c);
-            
-            index++;
+            //writeln(d_str);
+            tokens ~= new Node(id, to!int(d_str));
+            continue;
         }
+            
+        // +-*/()
+        auto sym =
+            c == '+' ? add :
+            c == '-' ? sub :
+            c == '*' ? mul :
+            c == '/' ? div :
+            c == '(' ? lPar:
+            c == ')' ? rPar:
+            -1;
+        if (sym != -1) tokens ~= new Node(sym);
+        else writeln("Invalid token: " ~ c);
+        
+        index++;
     }
     
-    
-    // InputRange
-    bool empty() @property {
-        return tokens.empty;
-    }
-    // return Symbol type
-    Symbol front() @property {
-        return tokens.front.symbol;
-    }
-    void popFront() {
-        tokens.popFront();
-    }
-    
-    Node top_node() @property {
-        return tokens.front;
-    }
+    return tokens;
 }
 
-/+ //get input from stdin and get tokens.
-Lexer getInput() {
-    return [Node(id, 12), Node(add), Node(id, 23), Node(mul), Node(id, 2)];
-}
-+/
-
-int eval(Lexer lex) {
+int eval(string str) {
+    auto tokens = lex(str);
+    
     int[] stack;
-    bool error_flag = false;
-    
-    alias parser = injectParser!(grammar_info, "SLR",
-        { /* accept */ },
-        (x) { /* reduce */
-            switch (x) {
-                case 0:     // Expr -> Expr + Term
+    State[] state_stack = [0];
+    while (true) {
+        auto result = oneStep(grammar.grammar_info.grammar, table_info.table, tokens.empty ? end_of_file_ : tokens.front.symbol, state_stack);
+        // SHIFT
+        if      (result.action == Action.shift)  {
+            stack ~= tokens.front.value;
+            tokens.popFront();
+        }
+        // REDUCE
+        else if (result.action == Action.reduce) {
+            switch (grammar.labelOf(result.num)) {
+                case "add":     // Expr -> Expr + Term
                     // pop 3 ints from the stack, and push 1 int on the top, while calculationg (first from top, i.e. Expr) + (third from top, i.e. Term)
                     stack[$-3] = stack[$-3] + stack[$-1];
                     stack.length -= 2;
                 break;
                 
-                case 1:     // Expr -> Expr - Term
+                case "sub":     // Expr -> Expr - Term
                     stack[$-3] = stack[$-3] - stack[$-1];
                     stack.length -= 2;
                 break;
                 
-                case 2:     // Expr -> Term
-                    // pop 1 node, push 1 node, without modifying value.
-                break;
-                
-                case 3:     // Term -> Term * Factor
+                case "mul":     // Term -> Term * Factor
                     stack[$-3] = stack[$-3] * stack[$-1];
                     stack.length -= 2;
                 break;
                 
-                case 4:     // Term -> Term / Factor
+                case "div":     // Term -> Term / Factor
                     stack[$-3] = stack[$-3] / stack[$-1];
                     stack.length -= 2;
                 break;
                 
-                case 5:     // Term -> Factor
-                break;
-                
-                case 6:     // Factor -> ( Expr )
+                case "_Expr_":  // Factor -> ( Expr )
                     // pop 3 ints and push 1 int, with (new int) = (second from top)
                     stack[$-3] = stack[$-2];
                     stack.length -= 2;
                 break;
                 
-                case 7:     // Factor -> 123
-                    //stack[$-1] = stack[$-1];
-                break;
-                
-                case 8:     // Factor -> +691
+                case "uadd":    // Factor -> + 691
                     stack[$-2] = stack[$-1];
                     stack.length -= 1;
                 break;
                 
-                case 9:     // Factor -> -691
+                case "usub":    // Factor -> - 691
                     stack[$-2] = -stack[$-1];
                     stack.length -= 1;
                 break;
                 
                 default:
-                assert(0);
+                break;
             }
-        },
-        (x) { error_flag = true; },           // error
-        { stack ~= lex.top_node.value; }      // shift
-    );
-    
-    parser.parse(lex);
-    
-    if (stack.length != 1 || error_flag) { writeln("Invalid expression."); return 0; }
+        }
+        else if (result.action == Action.accept) break;
+        else if (result.action == Action.error)  { writeln("Invalid expression."); return 0; }
+    }
     return stack[0];
 }
 
-int eval(string str) {
-    return eval(new Lexer(str));
-}

@@ -9,18 +9,33 @@ import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln;
 import std.conv: to;
 
-class Tree {
+class TreePrototype {
     Symbol symbol;
+    Tree[] children;
+    size_t rule;
+    this(){}
+}
+
+class Tree : TreePrototype {
     int value;
     this(Symbol s, int v) { symbol = s; value = v; }
     this(){}
-    
-    Tree[] children;
-    size_t rule;
 }
-    
+
+/+
 unittest {
-    
+    template template_test(T, alias string str) {
+        string func() {
+            return T.stringof ~ str;
+        }
+    }
+    string s = " is a type";
+    alias test = template_test!(Tree, s);
+    test.func().writeln();
+}+/
+
+
+unittest {
     enum : Symbol {
         Expr, Term, Factor,
         digit, add, mul, lPar, rPar
@@ -33,11 +48,15 @@ unittest {
         rule(Factor, digit),
         rule(Factor, lPar, Expr, rPar),
     ], ["Expr", "Term", "Factor", "digit", "+", "*", "(", ")"]);
-    //static const table_info = SLRtableInfo(grammar_info);
-    alias tree_generator = getParseTree!(Tree, grammar_info, "SLR");
-    static const tree = getParseTree!(Tree, grammar_info, "SLR")([new Tree(digit, 30), new Tree(add, 0), new Tree(digit, 3), new Tree(mul, 0), new Tree(digit, 4)]);
+    /*
+    import comp_d.SLR;
+    static const table_info = SLRtableInfo(grammar_info);
+    static const tree = getParseTree!(Tree)(grammar_info, table_info, [new Tree(digit, 30), new Tree(add, 0), new Tree(digit, 3), new Tree(mul, 0), new Tree(digit, 4)]);
+    */
+    alias tree_getter = TreeGenerator!(Tree, grammar_info, "SLR");
+    static const tree = tree_getter([new Tree(digit, 30), new Tree(add, 0), new Tree(digit, 3), new Tree(mul, 0), new Tree(digit, 4)]);
     
-    int eval(inout Tree tree) {
+    int eval(const Tree tree) {
         // digit
         if (tree.symbol == digit) return tree.value;
         // other
@@ -69,16 +88,17 @@ enum bool IsTreeType(T) =
     is(T == class) &&
     is(ReturnType!((T t) => t.symbol)     == Symbol) &&
     is(ReturnType!((T t) => t.children)   == T[])    &&
-    is(ReturnType!((T t) => t.rule)       == size_t);
+    is(ReturnType!((T t) => t.rule)       == size_t) &&
+    is( typeof( { auto t = new T; } ) );
 
-template getParseTree(Tree, alias const GrammarInfo grammar_info, alias const LRTableInfo table_info)
-    if (IsTreeType!(Tree))
+template getParseTree(T)
+    if (IsTreeType!T)
 {
-    Tree getParseTree(Range)(Range input)
-        if ( isInputRange!Range && is(typeof(input.front()) == Tree) )
+    // if longest is true, give back the longest parse tree that can be deduced from the input.
+    T getParseTree(Range)(const Grammar grammar, const LRTable table, Range input, bool longest = false)
+        if ( isInputRange!Range && is(typeof(input.front()) == T) )
     {
-        auto grammar = grammar_info.grammar, table = table_info.table;
-        Tree[]  tree_stack;
+        T[]  tree_stack;
         State[] stack = [0];
         while (true) {
             auto result = oneStep(grammar, table, input.empty ? end_of_file_ : input.front.symbol, stack);
@@ -87,8 +107,9 @@ template getParseTree(Tree, alias const GrammarInfo grammar_info, alias const LR
                 input.popFront();
             }
             else if (result.action == Action.reduce) {
+                // new tree A -> X1 X2 .. Xn
                 auto rule = grammar[result.num];
-                auto new_tree = new Tree;
+                auto new_tree = new T;
                 new_tree.symbol = rule.lhs;
                 if (!(rule.rhs.length == 1 && rule.rhs[0] == empty_)) {
                     foreach (tree; tree_stack[$-rule.rhs.length .. $]) {
@@ -99,16 +120,45 @@ template getParseTree(Tree, alias const GrammarInfo grammar_info, alias const LR
                 tree_stack ~= new_tree;
             }
             else if (result.action == Action.accept) return tree_stack[0];
-            else if (result.action == Action.error)  return null;
+            else if (result.action == Action.error) {
+                if (!longest) return null;
+                result = oneStep(grammar, table, end_of_file_, stack);
+                if (result.action == Action.accept) return tree_stack[0];
+                else return null;
+            }
             //else assert(0);
         }
         assert(0);
     }
+    T getParseTree(Range)(const GrammarInfo grammar_info, const LRTable table,          Range input, bool longest = false)
+        if ( isInputRange!Range && is(typeof(input.front()) == T) )
+    {
+        return getParseTree!(Range)(grammar_info.grammar, table,            input, longest);
+    }
+    T getParseTree(Range)(const Grammar grammar,          const LRTableInfo table_info, Range input, bool longest = false)
+        if ( isInputRange!Range && is(typeof(input.front()) == T) )
+    {
+        return getParseTree!(Range)(grammar,              table_info.table, input, longest);
+    }
+    T getParseTree(Range)(const GrammarInfo grammar_info, const LRTableInfo table_info, Range input, bool longest = false)
+        if ( isInputRange!Range && is(typeof(input.front()) == T) )
+    {
+        return getParseTree!(Range)(grammar_info.grammar, table_info.table, input, longest);
+    }
 }
 
-template getParseTree(Tree, alias const GrammarInfo grammar_info, string type = "LALR", string module_name = __MODULE__, string file_name = __FILE__, size_t line = __LINE__) {
+template TreeGenerator(
+    T, alias const GrammarInfo grammar_info, string type = "LALR",
+    string module_name = __MODULE__, string file_name = __FILE__, size_t line = __LINE__
+)
+    if (IsTreeType!T)
+{
     import comp_d.inject: table_info_injection_declaration;
     mixin(table_info_injection_declaration);
     
-    alias getParseTree = getParseTree!(Tree, grammar_info, table_info);
+    T TreeGenerator(Range)(Range input, bool longest = false)
+        if ( isInputRange!Range && is(typeof(input.front()) == T) )
+    {
+        return getParseTree!T(grammar_info.grammar, table_info.table, input, longest);
+    }
 }
