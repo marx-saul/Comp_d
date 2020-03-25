@@ -14,6 +14,10 @@ Implement Pager's minimal LR(1) algorithm (strong-compatibility) (and IELR(1) if
 Any improvement suggests/advices/requests are welcome.
 
 ### History
+v0.5.0 Templates changed.
+
+v0.4.0 Templates changed.
+
 v0.3.0 Auto parse tree construction, Fixed bug around weak minimal LR, changed DSL slightly.
 
 v0.2.0 Pager's minimal LR(1) algorithm (weak-compatibility) implemented.

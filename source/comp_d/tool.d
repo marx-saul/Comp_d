@@ -6,7 +6,7 @@ import std.array, std.container;
 import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln, write;
 import std.conv: to;
-/+
+
 unittest {
     static const set1 = new SymbolSet(4, [2,3,-1]);
     SymbolSet Test1() {
@@ -21,9 +21,12 @@ unittest {
     static assert (set1 + set3 == set2);
     
     static assert (new SymbolSet(4, [-3, -2, -1, 0, 1, 2, 3]) - new SymbolSet(4, [-3, -1, 0, 2, 3]) == set3);
+    
+    static assert ( equal((set1 & set2).array, [-1, 2, 3]) );
+    static assert ( equal((new SymbolSet(4, [-2, 2, 3]) & set2).array, [-2, 2, 3]) );
     writeln("## tool.d unittest 1");
 }
-+/
+
 /+
 unittest {
     enum : Symbol {
@@ -475,6 +478,18 @@ package class SymbolSet {
             return this;
         }
         else assert(0, "\033[1m\033[32m" ~ op ~ "= for Set is not implemented.\033[0m");
+    }
+    
+    // operator "&" overload
+    // cap
+    public SymbolSet opBinary(string op)(inout SymbolSet set2) inout
+        if (op == "&")
+    {
+        auto result = new SymbolSet(max_symbol_number);
+        result.data.length = this.data.length;
+        foreach (i; 0 .. result.data.length) result.data[i] = (this.data[i] && set2.data[i]);
+        result.cardinal_ = result.array.length;
+        return result;
     }
 }
 /+

@@ -16,7 +16,7 @@ class TreePrototype {
     this(){}
 }
 
-class Tree : TreePrototype {
+version(unittest) class Tree : TreePrototype {
     int value;
     this(Symbol s, int v) { symbol = s; value = v; }
     this(){}

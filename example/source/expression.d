@@ -29,7 +29,7 @@ mixin ("enum : Symbol {" ~ grammar.tokenDeclarations ~ "}");
 static const table_info = SLRtableInfo(grammar.grammar_info);
 
 // you can make a syntax tree using left and right
-struct Node {
+class Node {
     Symbol symbol;
     Tree[] children;
     size_t rule;
