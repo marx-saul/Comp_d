@@ -5,8 +5,7 @@ import std.typecons;
 import std.array, std.container, std.container.binaryheap;
 import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln, write;
-/+
-// grammars that passed to these functions must be augmented.
+
 unittest {
     enum : Symbol {
         Expr, Term, Factor,
@@ -22,16 +21,15 @@ unittest {
     ], ["Expr", "Term", "Factor", "digit", "+", "*", "(", ")"]);
     
     showSLRtableInfo(grammar_info);
-    writeln("## SLR unittest 1");
+    writeln("## SLR.d unittest 1");
 }
-+/
-/+
+
 unittest {
     // this is not an SLR(1) grammar
     enum : Symbol {
         S, L, R, eq, star, id
     }
-    static const grammar_info = new GrammarInfo([
+    auto grammar_info = new GrammarInfo([
         rule(S, L, eq, R),
         rule(S, R),
         rule(L, star, R),
@@ -40,29 +38,31 @@ unittest {
     ], ["S", "L", "R", "=", "*", "id"]);
     
     showSLRtableInfo(grammar_info);
+    writeln();
+    showFirstTable(grammar_info);
+    writeln();
     showFollowTable(grammar_info);
-    writeln("## SLR unittest 2");
+    writeln("## SLR.d unittest 2");
 }
-+/
-/+
+
 unittest {
     enum : Symbol {
         S, A, B, a, b, c, d, e
     }
     // reduce-reduce conflict occurs
-    auto grammar_info = new GrammarInfo(grammar(
+    auto grammar_info = new GrammarInfo([
         rule(S, a, A, d),
         rule(S, b, B, d),
         rule(S, a, B, e),
         rule(S, b, A, e),
         rule(A, c),
         rule(B, c),
-    ), ["S", "A", "B", "a", "b", "c", "d", "e"]);
+    ], ["S", "A", "B", "a", "b", "c", "d", "e"]);
     
     showSLRtableInfo(grammar_info);
     writeln("## SLR unittest 3");
 }
-+/
+
 /*
 unittest {
     enum : Symbol {
@@ -110,7 +110,7 @@ unittest {
     static assert (!table_info.is_conflict);
     /+ 4 -> 5, 5 -> 4 +/
     
-    writeln("## SLR unittest 2");
+    writeln("## SLR.d unittest 4");
 }
 */
 
@@ -302,7 +302,7 @@ private void showSLRtableInfo(const GrammarInfo grammar_info, const LRTableInfo 
             else if (act == Action.accept) { write("\033[1m\033[37macc\033[0m, "); }
             else if (act == Action.shift)  { write("\033[1m\033[36ms\033[0m-", entry.num, ", "); }
             else if (act == Action.reduce) { write("\033[1m\033[33mr\033[0m-", entry.num, ", "); }
-            else if (act == Action.goto_)  { write("\033[1m\033[32mg\033[0m-", entry.num, ", "); }
+            else if (act == Action.goto_)  { assert(0); /*write("\033[1m\033[32mg\033[0m-", entry.num, ", ");*/ }
         }
         writeln();
     }

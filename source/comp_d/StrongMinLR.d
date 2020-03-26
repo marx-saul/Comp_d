@@ -17,6 +17,22 @@ bool FEntryLess(FEntry a, FEntry b) {
 alias FSet = AATree!(FEntry, FEntryLess, bool);
 
 unittest {
+    enum : Symbol { S, X, Y, B, a, b }
+    auto grammar_info = new GrammarInfo([
+        rule(S, a, Y, a), rule(S, a, X, b), rule(S, b, Y, b), rule(S, b, X, a),
+        rule(X, a, B),
+        rule(Y, a, b),
+        rule(B, b),
+    ], ["S", "X", "Y", "B", "a", "b"]);
+    
+    auto fset = new FSet;
+    assert (check(4, 1 /* X -> a.B */, 5, 1 /* Y -> a.b */, grammar_info, fset));
+    assert (check(5, 1, 4, 1, grammar_info, fset));
+    
+    writeln("## StrongMinLR.d unittest 1");
+}
+
+unittest {
     /*
     enum : Symbol { S, C, c, d }
     static const grammar_info = new GrammarInfo([
@@ -27,15 +43,15 @@ unittest {
     ], ["S", "C", "c", "d"]);
     */
     
-    
     enum : Symbol { S, X, Y, B, a, b }
-    static const grammar_info = new GrammarInfo([
+    auto grammar_info = new GrammarInfo([
         rule(S, a, Y, a), rule(S, a, X, b), rule(S, b, Y, b), rule(S, b, X, a),
         rule(X, a, B),
         rule(Y, a, b),
         rule(B, b),
     ], ["S", "X", "Y", "B", "a", "b"]);
     
+    auto table_info = strongMinimalLRtableInfo(grammar_info);
     showStrongMinimalLRtableInfo(grammar_info);
     
     //import comp_d.WeakMinLR: showWeakMinimalLRtableInfo;
@@ -47,24 +63,7 @@ unittest {
     
     //writeln("-----------------------------------------------------------------");
     
-    
-    writeln("## StrongMinLR unittest 1");
-}
-
-unittest {
-    enum : Symbol { S, X, Y, B, a, b }
-    static const grammar_info = new GrammarInfo([
-        rule(S, a, Y, a), rule(S, a, X, b), rule(S, b, Y, b), rule(S, b, X, a),
-        rule(X, a, B),
-        rule(Y, a, b),
-        rule(B, b),
-    ], ["S", "X", "Y", "B", "a", "b"]);
-    
-    auto fset = new FSet;
-    assert (check(4, 1 /* X -> a.B */, 5, 1 /* Y -> a.b */, grammar_info, fset));
-    assert (check(5, 1, 4, 1, grammar_info, fset));
-    
-    writeln("## StrongMinLR unittest 2");
+    writeln("## StrongMinLR.d unittest 2");
 }
 
 // check whether they have the same core and strongly compatible
@@ -107,7 +106,7 @@ package bool isStronglyCompatible(const ItemGroupSet a, const ItemGroupSet b, co
     foreach (i; 0 .. a_core.length) {
         foreach (j; i+1 .. a_core.length) {
             // TAIL(scanned_a) & TAIL(scanned_b) = φ
-            if ((tail_a[i] & tail_b[j]).cardinal == 0) return true;
+            if ((tail_a[i] & tail_b[j]).cardinal == 0) continue;
             
             // scanned_a ( = grammar[a_core[i].num].rhs[a_core[i].index .. $]) and scanned_b have shared decendant.
             if (check(a_core[i].num, a_core[i].index, b_core[j].num, b_core[j].index, grammar_info, fset)) return false;
@@ -170,19 +169,18 @@ private bool check(size_t num1, size_t index1, size_t num2, size_t index2, const
     
     // Write str1 = a0 a1 ... an, str2 = b0 b1 ... bm.
     // Check if there exist i >= s and j >= t such that 
-    // i >= j and A -> α a0 a1 ... aj-1 . aj ... an and some bj -> .ω share descendant
+    // i >= j, j-1 <= match and [A -> α a0 a1 ... aj-1 . aj ... an] and some [bj -> .ω] share descendant
     //  or
-    // i <= j and B -> β b0 b1 ... bi-1 . bi ... bm and some ai -> .ω share descendant,
-    // where A -> α.str1 and B -> β.str2 correspond to LR0Item(num1, index1) and LR0Item(num2, index2) respectively.
-    
-    writeln(s, " ", str1.length, " ", t, " ", str2.length);
+    // i <= j, i-1 <= match and [B -> β b0 b1 ... bi-1 . bi ... bm] and some [ai -> .ω] share descendant,
+    // where [A -> α.str1] and [B -> β.str2] correspond to LR0Item(num1, index1) and LR0Item(num2, index2) respectively.
+    //writeln(s, " ", str1.length, " ", t, " ", str2.length);
     foreach (i; s .. str1.length) foreach (j; t .. str2.length) {
-        writeln("i = ", i, ", j = ", j);
-        writeln("str1[i] = ", grammar_info.nameOf(str1[i]), ", str2[j] = ", grammar_info.nameOf(str2[j]));
-        if (i >= j) {
+        //writeln("i = ", i, ", j = ", j);
+        //writeln("str1[i] = ", grammar_info.nameOf(str1[i]), ", str2[j] = ", grammar_info.nameOf(str2[j]));
+        if ( i >= j && (j == 0 || (match_flag && j-1 <= match)) ) {
             if (str2[j] in grammar_info.nonterminals)
                 foreach (rule_num, rule; grammar) if (rule.lhs == str2[j]) {
-                    writeln("here184 ", rule_num);
+                    //writeln("here184 ", rule_num);
                     bool check_result;
                     auto fentry = FEntry(rule_num, num1, index1+j);
                     if (!fset.hasKey(fentry))
@@ -193,10 +191,10 @@ private bool check(size_t num1, size_t index1, size_t num2, size_t index2, const
                     if (check_result) return true; 
                 }
         }
-        if (i <= j) {
+        if ( i <= j && (i == 0 || (match_flag && i-1 <= match)) ) {
             if (str1[i] in grammar_info.nonterminals)
                 foreach (rule_num, rule; grammar) if (rule.lhs == str1[i]) {
-                    writeln("here198 ", rule_num);
+                    //writeln("here198 ", rule_num);
                     bool check_result;
                     auto fentry = FEntry(rule_num, num2, index2+j);
                     if (!fset.hasKey(fentry))
@@ -651,7 +649,7 @@ void showStrongMinimalLRtableInfo(const GrammarInfo grammar_info) {
             else if (act == Action.accept) { write("\033[1m\033[37macc\033[0m, "); }
             else if (act == Action.shift)  { write("\033[1m\033[36ms\033[0m-", entry.num, ", "); }
             else if (act == Action.reduce) { write("\033[1m\033[33mr\033[0m-", entry.num, ", "); }
-            else if (act == Action.goto_)  { write("\033[1m\033[32mg\033[0m-", entry.num, ", "); }
+            else if (act == Action.goto_)  { assert(0); /*write("\033[1m\033[32mg\033[0m-", entry.num, ", ");*/ }
         }
         writeln();
     }

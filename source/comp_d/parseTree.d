@@ -54,9 +54,15 @@ unittest {
     static const tree = getParseTree!(Tree)(grammar_info, table_info, [new Tree(digit, 30), new Tree(add, 0), new Tree(digit, 3), new Tree(mul, 0), new Tree(digit, 4)]);
     */
     alias tree_getter = TreeGenerator!(Tree, grammar_info, "SLR");
-    static const tree = tree_getter([new Tree(digit, 30), new Tree(add, 0), new Tree(digit, 3), new Tree(mul, 0), new Tree(digit, 4)]);
+    //static const tree = tree_getter([new Tree(digit, 30), new Tree(add, 0), new Tree(digit, 3), new Tree(mul, 0), new Tree(digit, 4)]);
+    auto tree1 = tree_getter([new Tree(digit, 30), new Tree(add, 0), new Tree(digit, 3), new Tree(mul, 0), new Tree(digit, 4)]);
+    auto tree2 = tree_getter([new Tree(lPar, 0), new Tree(digit, 30), new Tree(add, 0), new Tree(digit, 3), new Tree(rPar, 0), new Tree(mul, 0), new Tree(digit, 4)]);
+    auto tree3 = tree_getter([new Tree(lPar, 0), new Tree(digit, 30), new Tree(add, 0), new Tree(digit, 3), new Tree(rPar, 0), new Tree(mul, 0), new Tree(digit, 4), new Tree(rPar, 0)], longest = true);
     
     int eval(const Tree tree) {
+        if (tree == null) return 0;
+        import std.algorithm;
+        //writeln(grammar_info.nameOf(tree.symbol), " ", tree.children.map!(x => grammar_info.nameOf(x.symbol)), " ", tree.rule, " ", tree.value);
         // digit
         if (tree.symbol == digit) return tree.value;
         // other
@@ -66,7 +72,7 @@ unittest {
             case 1: // Expr -> Term
                 return eval(tree.children[0]);
             case 2: // Term -> Term * Factor
-                return eval(tree.children[0]) * eval(tree);
+                return eval(tree.children[0]) * eval(tree.children[2]);
             case 3: // Term -> Factor
                 return eval(tree.children[0]);
             case 4: // Factor -> digit
@@ -78,7 +84,10 @@ unittest {
         }
     }
     
-    //static assert (eval(tree) == 42);
+    //static assert (eval(tree1) == 42);
+    assert (eval(tree1) == 42 /* 30 + 3 * 4 */ );
+    assert (eval(tree2) == 132 /* (30 + 3) * 4 */ );
+    assert (eval(tree3) == 132);
     
     writeln("## parseTree.d unittest 1");
 }
@@ -110,7 +119,7 @@ template getParseTree(T)
                 // new tree A -> X1 X2 .. Xn
                 auto rule = grammar[result.num];
                 auto new_tree = new T;
-                new_tree.symbol = rule.lhs;
+                new_tree.symbol = rule.lhs, new_tree.rule = result.num;
                 if (!(rule.rhs.length == 1 && rule.rhs[0] == empty_)) {
                     foreach (tree; tree_stack[$-rule.rhs.length .. $]) {
                         new_tree.children ~= tree;

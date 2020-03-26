@@ -62,12 +62,8 @@ class Set(T, alias less = (a,b)=>a<b)
         aat = new AATree!(T, less)(args);
     }
     
-    // range (foreach )
     public @property bool empty() {
         return aat.empty;
-    }
-    public @property T front() {
-        return aat.front;
     }
     
     // array, cardinal

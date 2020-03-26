@@ -25,6 +25,8 @@ unittest {
     ], ["Expr", "Expr'", "Term", "Term'", "Factor", "id", "+", "*", "(", ")"]);
     
     import comp_d.SLR: SLRtableInfo;
+    
+    /*
     static const table_info = SLRtableInfo(grammar_info);
     
     const Symbol[] inputs1 = [digit, add, lPar, digit, add, digit, mul, digit, rPar];
@@ -34,6 +36,17 @@ unittest {
     static assert ( parse(grammar_info, table_info.table, inputs1) );
     static assert (!parse(grammar_info.grammar, table_info, inputs2) );
     static assert ( parse(grammar_info, table_info, [digit, add, digit, mul, lPar, digit, add, digit, rPar]) );
+    */
+    
+    auto table_info = SLRtableInfo(grammar_info);
+    
+    const Symbol[] inputs1 = [digit, add, lPar, digit, add, digit, mul, digit, rPar];
+    const Symbol[] inputs2 = [lPar, digit, rPar, rPar];
+    
+    assert ( !table_info.is_conflict );
+    assert ( parse(grammar_info, table_info.table, inputs1) );
+    assert (!parse(grammar_info.grammar, table_info, inputs2) );
+    assert ( parse(grammar_info, table_info, [digit, add, digit, mul, lPar, digit, add, digit, rPar]) );
     
     writeln("## parser.d unittest 1");
 }

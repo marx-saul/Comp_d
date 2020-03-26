@@ -1,30 +1,35 @@
 module comp_d.AATree;
 
-import comp_d.tool, comp_d.data;
-import std.typecons;
-import std.array, std.container, std.container.binaryheap;
-import std.algorithm, std.algorithm.comparison;
+import std.algorithm: min;
 import std.stdio: writeln;
-import std.conv: to;
 
 unittest {
+    //import std.stdio: writeln;
+    import std.algorithm.comparison: equal;
+
     // CTFE check
     static const aatree = new AATree!int(3, 9, 4);
     aatree.test();
     static assert ( equal(aatree.keys, [3, 4, 9]) );
-    static assert ( !aatree.empty );
-    static assert ( aatree.front == 3 );
     static assert ( aatree.hasKey(9) );
     static assert ( aatree.cardinal == 3 );
     
     // run time check
-    auto aatree2 = new AATree!int(3, 9, 4);
-    aatree2.insert(9, -1, 2, 6);
-    aatree2.remove(2, 4, 4, 10);
-    assert ( equal(aatree2.keys, [-1, 3, 6, 9]) );
-    assert ( aatree2.hasKey(-1) && !aatree2.hasKey(2) );
-    assert ( aatree2.cardinal == 4 );
-    writeln("## AATree unittest 1");
+    auto aatree2 = new AATree!(int, (a,b) => a>b, int)();
+    aatree2[-9] = 0;    aatree2[9] = 0;
+    aatree2[-8] = 0;    aatree2[8] = 0;
+    aatree2[-7] = 0;    aatree2[7] = 0;
+    aatree2[-6] = 0;    aatree2[6] = 0;
+    aatree2[-5] = 0;    aatree2[5] = 0;
+    aatree2[-4] = 0;    aatree2[4] = 0;
+    aatree2[-3] = 0;    aatree2[3] = 0;
+    aatree2[-2] = 0;    aatree2[2] = 0;
+    aatree2[-1] = 0;    aatree2[1] = 0;
+    aatree2[0] = 0;
+    aatree2.remove(-5, 5, 9, 1, 7, -3, -8, 5, 1);
+    assert (equal(aatree2.keys, [8, 6, 4, 3, 2, 0, -1, -2, -4, -6, -7, -9])); 
+    writeln("## AATree.d unittest1");
+    
 }
 
 // K is key, V is value
@@ -64,10 +69,11 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
     public size_t cardinal() @property inout const {
         return cardinal_;
     }
-    
+   
     public bool empty() @property inout {
         return root == null;
     }
+    /*
     public K front() @property inout {
         return getMinimum(cast(Node*) root).key;
     }
@@ -78,7 +84,11 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
             node = node.left;
         return node;
     }
+    */
     
+    public bool hasKey(inout K key) inout {
+        return hasKey(key, cast(Node*) root) != null;
+    }
     private Node* hasKey(inout K key, Node* node) inout {
         while (true) {
             // not found
@@ -92,9 +102,7 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
             else if (less(node.key, key)) node = node.right;
         }
     }
-    public bool hasKey(inout K key) inout {
-        return hasKey(key, cast(Node*) root) != null;
-    }
+    
     public ref V getValue(inout K key) inout const {
         return hasKey(key, cast(Node*) root).value;
     }
@@ -146,11 +154,15 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
     }
     /////////////
     // insert
+    public void insert(K[] keys...) {
+        foreach (key; keys)
+            root = insert(key, root);
+    }
     private Node* insert(K key, Node* node, V value = V.init) {
         if      (node == null) {
             auto new_node = new Node();
             new_node.key = key, new_node.level = 1, new_node.value = value; 
-            cardinal_++;
+            ++cardinal_;
             return new_node;
         }
         else if (less(key, node.key)) {
@@ -167,14 +179,13 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
         return node;
     }
     
-    public void insert(K[] keys...) {
-        foreach (key; keys)
-            root = insert(key, root);
-    }
-    
     /////////////
     // remove
-    public Node* remove(K key, Node* node) {
+    public void remove(K[] keys...) {
+        foreach (key; keys)
+            root = remove(key, root);
+    }
+    private Node* remove(K key, Node* node) {
         if (node == null)
             return null;
         else if (less(node.key, key))
@@ -184,7 +195,7 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
         else {
             // leaf
             if (node.left == null && node.right == null) {
-                cardinal_--;
+                --cardinal_;
                 return null;
             }
             else if (node.left == null) {
@@ -209,6 +220,7 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
     }
     
     private Node* decrease_level(Node* node) {
+        if (node == null) return null;
         auto normalize
            = min(
                node.left  ? node.left.level  : 0,
@@ -217,14 +229,13 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
            + 1;
         if (normalize < node.level) {
             node.level = normalize;
-            if (normalize < node.right.level)
+            if (node.right && normalize < node.right.level)
                 node.right.level = normalize;
         }
         return node;
     }
     
     private Node* predecessor(Node* node) {
-        //if (node == null || node.left == null) return null;
         node = node.left;
         while (node.right)
             node = node.right;
@@ -232,16 +243,10 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
     }
     
     private Node* successor(Node* node) {
-        //if (node == null || node.right == null) return null;
         node = node.right;
         while (node.left)
             node = node.left;
         return node;
-    }
-    
-    public void remove(K[] keys...) {
-        foreach (key; keys)
-            root = remove(key, root);
     }
     
     version (unittest) {

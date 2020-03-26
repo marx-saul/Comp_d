@@ -13,7 +13,7 @@ unittest {
     enum : Symbol {
         S, C, c, d
     }
-    static const grammar_info = new GrammarInfo([
+    auto grammar_info = new GrammarInfo([
         rule(S, empty_),
         rule(S, C, C),
         rule(C, c, C),
@@ -31,8 +31,28 @@ unittest {
         rule(R, L),
     ], ["S", "L", "R", "=", "*", "id"]);
     */
-    //showLRtableInfo(grammar_info);
-    writeln("## LR unittest 1");
+    
+    auto table_info = LRtableInfo(grammar_info);
+    showLRtableInfo(grammar_info);
+    writeln("## LR.d unittest 1");
+}
+
+
+unittest {
+    enum : Symbol {
+        S, L, R, eq, star, id
+    }
+    auto grammar_info = new GrammarInfo([
+        rule(S, L, eq, R),
+        rule(S, R),
+        rule(L, star, R),
+        rule(L, id),
+        rule(R, L),
+    ], ["S", "L", "R", "=", "*", "id"]);
+    
+    auto table_info = LRtableInfo(grammar_info);
+    showLRtableInfo(grammar_info);
+    writeln("## LR.d unittest 2");
 }
 
 // replace item_set by its closure

@@ -13,21 +13,27 @@ alias ItemGroupSet = AATree!(LR0Item, ItemLess, Set!Symbol);
 bool ItemLess(LR0Item a, LR0Item b) {
     return (a.index < b.index) || (a.index == b.index && a.num < b.num);
 }
+
 unittest {
-    /+
     enum : Symbol {
         S, C, c, d
     }
-    static const grammar_info = new GrammarInfo([
+    auto grammar_info = new GrammarInfo([
         rule(S, empty_),
         rule(S, C, C),
         rule(C, c, C),
         rule(C, d),
     ], ["S", "C", "c", "d"]);
-    +/
-    /*
+    
+    auto table_info = weakMinimalLRtableInfo(grammar_info);
+    showWeakMinimalLRtableInfo(grammar_info);
+    
+    writeln("## WeakMinLR.d unittest 1");
+}
+
+unittest {
     enum : Symbol { S, A, B, C, D, E, F, X, Y, Z, a, b, c, d, f }
-    static const grammar_info = new GrammarInfo([
+    auto grammar_info = new GrammarInfo([
         rule(S, a, Z, a), rule(S, b, Z, c), rule(S, a, X, b), rule(S, b, X, d), rule(S, a, Y, d), rule(S, b, Y, a), 
         rule(A, a, D, F),
         rule(B, b),
@@ -39,10 +45,16 @@ unittest {
         rule(Y, a, B),
         rule(Z, a, C),
     ], ["S", "A", "B", "C", "D", "E", "F", "X", "Y", "Z", "a", "b", "c", "d", "f"]);
-    */
-    /*
+    
+    auto table_info = weakMinimalLRtableInfo(grammar_info);
+    showWeakMinimalLRtableInfo(grammar_info);
+    
+    writeln("## WeakMinLR.d unittest 2");
+}
+
+unittest {
     enum : Symbol { X, Y, Z, T, W, V, a, b, c, d, e, t, u }
-    static const grammar_info = new GrammarInfo([
+    auto grammar_info = new GrammarInfo([
         rule(X, a, Y, d), rule(X, a, Z, c), rule(X, a, T), rule(X, b, Y, e), rule(X, b, Z, d), rule(X, b, T),
         rule(Y, t, W), rule(Y, u, X),
         rule(Z, t, u),
@@ -50,22 +62,34 @@ unittest {
         rule(W, u, V),
         rule(V, empty_),           
     ], ["X", "Y", "Z", "T", "W", "V", "a", "b", "c", "d", "e", "t", "u"]);
-    */
-    /*
+    
+    auto table_info = weakMinimalLRtableInfo(grammar_info);
+    showWeakMinimalLRtableInfo(grammar_info);
+    
+    writeln("## WeakMinLR.d unittest 3");
+}
+
+unittest {
     enum : Symbol { S, X, Y, B, a, b }
-    static const grammar_info = new GrammarInfo([
+    auto grammar_info = new GrammarInfo([
         rule(S, a, Y, a), rule(S, a, X, b), rule(S, b, Y, b), rule(S, b, X, a),
         rule(X, a, B),
         rule(Y, a, b),
         rule(B, b),
     ], ["S", "X", "Y", "B", "a", "b"]);
-    */
-    /*
+    
+    auto table_info = weakMinimalLRtableInfo(grammar_info);
+    showWeakMinimalLRtableInfo(grammar_info);
+    
+    writeln("## WeakMinLR.d unittest 4");
+}
+
+unittest {
     enum : Symbol {
         Expr, Expr_, Term, Term_, Factor,
         digit, add, mul, lPar, rPar
     }
-    static const grammar_info = new GrammarInfo([
+    auto grammar_info = new GrammarInfo([
         rule(Expr, Term, Expr_),
         rule(Expr_, add, Term, Expr_),
         rule(Expr_, empty_),
@@ -76,14 +100,8 @@ unittest {
         rule(Factor, lPar, Expr, rPar),
     ], ["Expr", "Expr'", "Term", "Term'", "Factor", "id", "+", "*", "(", ")"]);
     
-    //static const table_info = weakMinimalLRtableInfo(grammar_info);
+    auto table_info = weakMinimalLRtableInfo(grammar_info);
     showWeakMinimalLRtableInfo(grammar_info);
-    
-    writeln("-----------------------------------------------------------------");
-    
-    import comp_d.SLR;
-    showSLRtableInfo(grammar_info);
-    */
     
     writeln("## WeakMinLR unittest 1");
 }
@@ -627,7 +645,7 @@ void showWeakMinimalLRtableInfo(const GrammarInfo grammar_info) {
             else if (act == Action.accept) { write("\033[1m\033[37macc\033[0m, "); }
             else if (act == Action.shift)  { write("\033[1m\033[36ms\033[0m-", entry.num, ", "); }
             else if (act == Action.reduce) { write("\033[1m\033[33mr\033[0m-", entry.num, ", "); }
-            else if (act == Action.goto_)  { write("\033[1m\033[32mg\033[0m-", entry.num, ", "); }
+            else if (act == Action.goto_)  { assert(0); /*write("\033[1m\033[32mg\033[0m-", entry.num, ", ");*/ }
         }
         writeln();
     }

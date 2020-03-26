@@ -8,6 +8,7 @@ import std.stdio: writeln, write;
 import std.conv: to;
 
 unittest {
+    /*
     static const set1 = new SymbolSet(4, [2,3,-1]);
     SymbolSet Test1() {
         auto result = new SymbolSet(4, [2,3,1]);
@@ -24,15 +25,34 @@ unittest {
     
     static assert ( equal((set1 & set2).array, [-1, 2, 3]) );
     static assert ( equal((new SymbolSet(4, [-2, 2, 3]) & set2).array, [-2, 2, 3]) );
+    */
+    
+    auto set1 = new SymbolSet(4, [2,3,-1]);
+    SymbolSet Test1() {
+        auto result = new SymbolSet(4, [2,3,1]);
+        result.add(-2,-1);
+        return result;
+    }
+    auto set2 = Test1();
+    assert (1 !in set1);
+    assert (set1 in set2);
+    auto set3 = new SymbolSet(4, [-2, 1]);
+    assert (set1 + set3 == set2);
+    
+    assert (new SymbolSet(4, [-3, -2, -1, 0, 1, 2, 3]) - new SymbolSet(4, [-3, -1, 0, 2, 3]) == set3);
+    
+    assert ( equal((set1 & set2).array, [-1, 2, 3]) );
+    assert ( equal((new SymbolSet(4, [-2, 2, 3]) & set2).array, [-2, 2, 3]) );
+    
     writeln("## tool.d unittest 1");
 }
 
-/+
 unittest {
     enum : Symbol {
         Expr, Term, Factor,
         digit, add, mul, lPar, rPar
     }
+    /*
     static const grammar_info = new GrammarInfo([
         rule(Expr, Expr, add, Term),
         rule(Expr, Term),
@@ -53,14 +73,37 @@ unittest {
     static assert ( equal(follow_table[Expr]  .array, [end_of_file_, add, rPar]) );
     static assert ( equal(follow_table[Term]  .array, [end_of_file_, add, mul, rPar]) );
     static assert ( equal(follow_table[Factor].array, [end_of_file_, add, mul, rPar]) );
+    */
+    
+    auto grammar_info = new GrammarInfo([
+        rule(Expr, Expr, add, Term),
+        rule(Expr, Term),
+        rule(Term, Term, mul, Factor),
+        rule(Term, Factor),
+        rule(Factor, digit),
+        rule(Factor, lPar, Expr, rPar)
+    ]);
+    // FIRST(Expr) = FIRST(Term) = FIRST(Factor) = {digit, lPar}
+    auto first_table  = grammar_info.first_test();
+    auto follow_table = grammar_info.follow_test();
+    
+    //writeln(first_table[Expr].array);
+    assert ( equal(first_table[Expr]  .array, [digit, lPar]) );
+    assert ( equal(first_table[Term]  .array, [digit, lPar]) );
+    assert ( equal(first_table[Factor].array, [digit, lPar]) );
+    
+    assert ( equal(follow_table[Expr]  .array, [end_of_file_, add, rPar]) );
+    assert ( equal(follow_table[Term]  .array, [end_of_file_, add, mul, rPar]) );
+    assert ( equal(follow_table[Factor].array, [end_of_file_, add, mul, rPar]) );
     writeln("## tool.d unittest 2");
 }
+
 unittest {
     enum : Symbol {
         Expr, Expr_, Term, Term_, Factor,
         digit, add, mul, lPar, rPar
     }
-    
+    /*
     static const grammar_info = new GrammarInfo([
         rule(Expr, Term, Expr_),
         rule(Expr_, add, Term, Expr_),
@@ -87,9 +130,37 @@ unittest {
     static assert ( equal(follow_table[Term_] .array, [end_of_file_, add, rPar]) );
     static assert ( equal(follow_table[Factor].array, [end_of_file_, add, mul, rPar]) );
     static assert ( follow_table[Factor].cardinal ==  follow_table[Factor].array.length);
+    */
+    
+    auto grammar_info = new GrammarInfo([
+        rule(Expr, Term, Expr_),
+        rule(Expr_, add, Term, Expr_),
+        rule(Expr_, empty_),
+        rule(Term, Factor, Term_),
+        rule(Term_, mul, Factor, Term_),
+        rule(Term_, empty_),
+        rule(Factor, digit),
+        rule(Factor, lPar, Expr, rPar)
+    ]);
+    
+    auto first_table  = grammar_info.first_test();
+    auto follow_table = grammar_info.follow_test();
+    
+    assert ( equal(first_table[Expr]  .array, [digit, lPar]) );
+    assert ( equal(first_table[Expr_] .array, [empty_, add]) );
+    assert ( equal(first_table[Term]  .array, [digit, lPar]) );
+    assert ( equal(first_table[Term_] .array, [empty_, mul]) );
+    assert ( equal(first_table[Factor].array, [digit, lPar]) );
+    
+    assert ( equal(follow_table[Expr]  .array, [end_of_file_, rPar]) );
+    assert ( equal(follow_table[Expr_] .array, [end_of_file_, rPar]) );
+    assert ( equal(follow_table[Term]  .array, [end_of_file_, add, rPar]) );
+    assert ( equal(follow_table[Term_] .array, [end_of_file_, add, rPar]) );
+    assert ( equal(follow_table[Factor].array, [end_of_file_, add, mul, rPar]) );
+    assert ( follow_table[Factor].cardinal ==  follow_table[Factor].array.length);
     
     writeln("## tool.d unittest 3");
-}+/
+}
 
 class GrammarInfo {
     public Grammar grammar;

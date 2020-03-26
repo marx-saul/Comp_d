@@ -50,6 +50,7 @@ unittest {
         rule(Factor, digit),
         rule(Factor, lPar, Expr, rPar)
     ]);
+    /*
     static const item_set1 = new LR0ItemSet(LR0Item(0, 0), LR0Item(8, 5), LR0Item(8, 1), LR0Item(3, 17));
     static assert (LR0Item(3, 16) !in item_set1);
     static assert (LR0Item(8, 1)   in item_set1);
@@ -63,6 +64,7 @@ unittest {
     
     static const item_set_set2 = new LR0ItemSetSet(cast(LR0ItemSet) item_set1, cast(LR0ItemSet) item_set3);
     static assert (item_set_set2 in item_set_set1);
+    */
     
     writeln("## LR0ItemSet unittest 1");
 }

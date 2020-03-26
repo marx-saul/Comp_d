@@ -9,7 +9,7 @@ import std.typecons;
 import std.array, std.container, std.container.binaryheap;
 import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln, write;
-/+
+
 // grammars that passed to these functions must be augmented.
 unittest{
     enum : Symbol {
@@ -23,12 +23,11 @@ unittest{
         rule(R, L),
     ], ["S", "L", "R", "=", "*", "id"]);
     
-    import comp_d.SLR: showSLRtableInfo;
+    auto table_info = LALRtableInfo(grammar_info);
     showLALRtableInfo(grammar_info);
-    //LALRtableInfo(grammar_info);
-    writeln("## LALR unittest 1");
+    writeln("## LALR.d unittest 1");
 }
-+/
+
 alias LookAhead = Tuple!(size_t, "i", size_t, "j", Symbol, "symbol");
 alias LookAheadSet = Set!(LookAhead, (a,b) => a.i < b.i || (a.i == b.i && a.j < b.j) || (a.i == b.i && a.j == b.j && a.symbol < b.symbol));
 
@@ -180,7 +179,7 @@ private void showLALRtableInfo(const GrammarInfo grammar_info, const LRTableInfo
             else if (act == Action.accept) { write("\033[1m\033[37macc\033[0m, \t"); }
             else if (act == Action.shift)  { write("\033[1m\033[36ms\033[0m-", table[i, sym].num, ", \t"); }
             else if (act == Action.reduce) { write("\033[1m\033[33mr\033[0m-", table[i, sym].num, ", \t"); }
-            else if (act == Action.goto_)  { write("\033[1m\033[32mg\033[0m-", table[i, sym].num, ", \t"); }
+            else if (act == Action.goto_)  { assert(0); /*write("\033[1m\033[32mg\033[0m-", entry.num, ", ");*/ }
         }
         writeln();
     }
@@ -194,7 +193,7 @@ private void showLALRtableInfo(const GrammarInfo grammar_info, const LRTableInfo
             else if (act == Action.accept) { write("\033[1m\033[37macc\033[0m, "); }
             else if (act == Action.shift)  { write("\033[1m\033[36ms\033[0m-", entry.num, ", "); }
             else if (act == Action.reduce) { write("\033[1m\033[33mr\033[0m-", entry.num, ", "); }
-            else if (act == Action.goto_)  { write("\033[1m\033[32mg\033[0m-", entry.num, ", "); }
+            else if (act == Action.goto_)  { assert(0); /*write("\033[1m\033[32mg\033[0m-", entry.num, ", ");*/ }
         }
         writeln();
     }
