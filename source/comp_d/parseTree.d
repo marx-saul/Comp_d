@@ -57,10 +57,10 @@ unittest {
     //static const tree = tree_getter([new Tree(digit, 30), new Tree(add, 0), new Tree(digit, 3), new Tree(mul, 0), new Tree(digit, 4)]);
     auto tree1 = tree_getter([new Tree(digit, 30), new Tree(add, 0), new Tree(digit, 3), new Tree(mul, 0), new Tree(digit, 4)]);
     auto tree2 = tree_getter([new Tree(lPar, 0), new Tree(digit, 30), new Tree(add, 0), new Tree(digit, 3), new Tree(rPar, 0), new Tree(mul, 0), new Tree(digit, 4)]);
-    auto tree3 = tree_getter([new Tree(lPar, 0), new Tree(digit, 30), new Tree(add, 0), new Tree(digit, 3), new Tree(rPar, 0), new Tree(mul, 0), new Tree(digit, 4), new Tree(rPar, 0)], longest = true);
+    auto tree3 = tree_getter([new Tree(lPar, 0), new Tree(digit, 30), new Tree(add, 0), new Tree(digit, 3), new Tree(rPar, 0), new Tree(mul, 0), new Tree(digit, 4), new Tree(rPar, 0)], true);
     
     int eval(const Tree tree) {
-        if (tree == null) return 0;
+        if (tree is null) return 0;
         import std.algorithm;
         //writeln(grammar_info.nameOf(tree.symbol), " ", tree.children.map!(x => grammar_info.nameOf(x.symbol)), " ", tree.rule, " ", tree.value);
         // digit

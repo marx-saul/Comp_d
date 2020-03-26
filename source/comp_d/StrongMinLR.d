@@ -16,33 +16,63 @@ bool FEntryLess(FEntry a, FEntry b) {
 }
 alias FSet = AATree!(FEntry, FEntryLess, bool);
 
-unittest {
-    enum : Symbol { S, X, Y, B, a, b }
-    auto grammar_info = new GrammarInfo([
-        rule(S, a, Y, a), rule(S, a, X, b), rule(S, b, Y, b), rule(S, b, X, a),
-        rule(X, a, B),
-        rule(Y, a, b),
-        rule(B, b),
-    ], ["S", "X", "Y", "B", "a", "b"]);
-    
-    auto fset = new FSet;
-    assert (check(4, 1 /* X -> a.B */, 5, 1 /* Y -> a.b */, grammar_info, fset));
-    assert (check(5, 1, 4, 1, grammar_info, fset));
-    
-    writeln("## StrongMinLR.d unittest 1");
-}
 
 unittest {
-    /*
-    enum : Symbol { S, C, c, d }
-    static const grammar_info = new GrammarInfo([
+    enum : Symbol {
+        S, C, c, d
+    }
+    auto grammar_info = new GrammarInfo([
         rule(S, empty_),
         rule(S, C, C),
         rule(C, c, C),
         rule(C, d),
     ], ["S", "C", "c", "d"]);
-    */
     
+    auto table_info = strongMinimalLRtableInfo(grammar_info);
+    showStrongMinimalLRtableInfo(grammar_info);
+    
+    writeln("## StrongMinLR.d unittest 1");
+}
+
+unittest {
+    enum : Symbol { S, A, B, C, D, E, F, X, Y, Z, a, b, c, d, f }
+    auto grammar_info = new GrammarInfo([
+        rule(S, a, Z, a), rule(S, b, Z, c), rule(S, a, X, b), rule(S, b, X, d), rule(S, a, Y, d), rule(S, b, Y, a), 
+        rule(A, a, D, F),
+        rule(B, b),
+        rule(C, a, D, f),
+        rule(D, d),
+        rule(E, empty_),
+        rule(F, empty_),
+        rule(X, a, A, E),
+        rule(Y, a, B),
+        rule(Z, a, C),
+    ], ["S", "A", "B", "C", "D", "E", "F", "X", "Y", "Z", "a", "b", "c", "d", "f"]);
+    
+    auto table_info = strongMinimalLRtableInfo(grammar_info);
+    showStrongMinimalLRtableInfo(grammar_info);
+    
+    writeln("## StrongMinLR.d unittest 2");
+}
+
+unittest {
+    enum : Symbol { X, Y, Z, T, W, V, a, b, c, d, e, t, u }
+    auto grammar_info = new GrammarInfo([
+        rule(X, a, Y, d), rule(X, a, Z, c), rule(X, a, T), rule(X, b, Y, e), rule(X, b, Z, d), rule(X, b, T),
+        rule(Y, t, W), rule(Y, u, X),
+        rule(Z, t, u),
+        rule(T, u, X, a),
+        rule(W, u, V),
+        rule(V, empty_),           
+    ], ["X", "Y", "Z", "T", "W", "V", "a", "b", "c", "d", "e", "t", "u"]);
+    
+    auto table_info = strongMinimalLRtableInfo(grammar_info);
+    showStrongMinimalLRtableInfo(grammar_info);
+    
+    writeln("## StrongMinLR.d unittest 3");
+}
+
+unittest {
     enum : Symbol { S, X, Y, B, a, b }
     auto grammar_info = new GrammarInfo([
         rule(S, a, Y, a), rule(S, a, X, b), rule(S, b, Y, b), rule(S, b, X, a),
@@ -54,16 +84,7 @@ unittest {
     auto table_info = strongMinimalLRtableInfo(grammar_info);
     showStrongMinimalLRtableInfo(grammar_info);
     
-    //import comp_d.WeakMinLR: showWeakMinimalLRtableInfo;
-    //showWeakMinimalLRtableInfo(grammar_info);
-    //import comp_d.LR;
-    //showLRtableInfo(grammar_info);
-    //import comp_d.SLR;
-    //showSLRtableInfo(grammar_info);
-    
-    //writeln("-----------------------------------------------------------------");
-    
-    writeln("## StrongMinLR.d unittest 2");
+    writeln("## StrongMinLR.d unittest 4");
 }
 
 // check whether they have the same core and strongly compatible

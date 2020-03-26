@@ -179,7 +179,7 @@ private void showLALRtableInfo(const GrammarInfo grammar_info, const LRTableInfo
             else if (act == Action.accept) { write("\033[1m\033[37macc\033[0m, \t"); }
             else if (act == Action.shift)  { write("\033[1m\033[36ms\033[0m-", table[i, sym].num, ", \t"); }
             else if (act == Action.reduce) { write("\033[1m\033[33mr\033[0m-", table[i, sym].num, ", \t"); }
-            else if (act == Action.goto_)  { assert(0); /*write("\033[1m\033[32mg\033[0m-", entry.num, ", ");*/ }
+            else if (act == Action.goto_)  { write("\033[1m\033[32mg\033[0m-", table[i, sym].num, ", \t"); }
         }
         writeln();
     }
