@@ -14,6 +14,8 @@ Implement Pager's minimal LR(1) algorithm (strong-compatibility) (and IELR(1) if
 Any improvement suggests/advices/requests are welcome.
 
 ### History
+v0.6.0 Pager's minimal LR(1) algorithm (strong-compatibility) implemented.
+
 v0.5.0 Templates changed.
 
 v0.4.0 Templates changed.
