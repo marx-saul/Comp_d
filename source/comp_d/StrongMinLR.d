@@ -116,6 +116,7 @@ package bool isStronglyCompatible(const ItemGroupSet a, const ItemGroupSet b, co
     auto grammar = grammar_info.grammar;
     import std.algorithm.mutation: reverse;
     
+    /+ Tail is not obtained as follows:
     SymbolSet[] tail_a, tail_b;
     foreach (i; 0 .. a_core.length) {
         auto string_a = grammar[a_core[i].num].rhs[a_core[i].index .. $].dup;
@@ -123,11 +124,12 @@ package bool isStronglyCompatible(const ItemGroupSet a, const ItemGroupSet b, co
         tail_a ~= grammar_info.first(string_a.reverse);
         tail_b ~= grammar_info.first(string_b.reverse);
     }
+    +/
     
     foreach (i; 0 .. a_core.length) {
         foreach (j; i+1 .. a_core.length) {
             // TAIL(scanned_a) & TAIL(scanned_b) = φ
-            if ((tail_a[i] & tail_b[j]).cardinal == 0) continue;
+            //if ((tail_a[i] & tail_b[j]).cardinal == 0) continue;
             
             // scanned_a ( = grammar[a_core[i].num].rhs[a_core[i].index .. $]) and scanned_b have shared decendant.
             if (check(a_core[i].num, a_core[i].index, b_core[j].num, b_core[j].index, grammar_info, fset)) return false;
