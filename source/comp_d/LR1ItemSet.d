@@ -11,7 +11,7 @@ import std.stdio: writeln;
 alias LR1Item = Tuple!(size_t, "num", size_t, "index", Symbol, "lookahead");
 
 // dictionary-order of LR1Item
-bool ItemLess(LR1Item a, LR1Item b) {
+pure bool ItemLess(LR1Item a, LR1Item b) {
     return a.num < b.num || (a.num == b.num && a.index < b.index) || (a.num == b.num && a.index == b.index && a.lookahead < b.lookahead);
 }
 
@@ -21,7 +21,7 @@ alias LR1ItemSet = Set!(LR1Item, ItemLess);
 
 // cardinal and dictionary-order of LR0ItemSet
 // compare (a.array.length, a.array[0], a.array[1], ...) and (b.array.length, b.array[0], b.array[1], ...)
-bool ItemSetLess(inout LR1ItemSet a, inout LR1ItemSet b) {
+pure bool ItemSetLess(inout LR1ItemSet a, inout LR1ItemSet b) {
     if      (a.cardinal < b.cardinal) return true;
     else if (a.cardinal > b.cardinal) return false;
     auto aa = a.array, ba = b.array;

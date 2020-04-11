@@ -7,6 +7,7 @@ import std.algorithm, std.algorithm.comparison;
 
 void main()
 {
+    /+
 	// expression.d
 	import expression;
     static assert (eval("26 - (32*2 - 23)") == -15);
@@ -16,6 +17,10 @@ void main()
         if (str == "exit\n") break;
         else writeln(" = ", eval(str));
     }
+    +/
+    
+    import lambda;
+    assert ( isLambda([lam, var, dot, lam, var, dot, var]) );
 }
 
 /+ // You can copy&paste these codes and remove the comment out to see the static parsing.

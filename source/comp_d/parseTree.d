@@ -8,15 +8,18 @@ import std.range, std.array;
 import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln;
 import std.conv: to;
-
+/*
 class TreePrototype {
     Symbol symbol;
-    Tree[] children;
+    TreePrototype[] children;
     size_t rule;
     this(){}
 }
-
-version(unittest) class Tree : TreePrototype {
+*/
+version(unittest) class Tree {
+    Symbol symbol;
+    Tree[] children;
+    size_t rule;
     int value;
     this(Symbol s, int v) { symbol = s; value = v; }
     this(){}
