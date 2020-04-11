@@ -97,6 +97,17 @@ LREntry oneStep(const Grammar grammar, const LRTable table, Symbol token, ref St
     return entry;
 }
 
+LREntry oneStep(const GrammarInfo grammar_info, const LRTable table,          Symbol token, ref State[] stack) {
+    return oneStep(grammar_info.grammar, table,            token, stack);
+}
+LREntry oneStep(const Grammar grammar,          const LRTableInfo table_info, Symbol token, ref State[] stack) {
+    return oneStep(grammar,              table_info.table, token, stack);
+}
+LREntry oneStep(const GrammarInfo grammar_info, const LRTableInfo table_info, Symbol token, ref State[] stack) {
+    return oneStep(grammar_info.grammar, table_info.table, token, stack);
+}
+
+
 bool parse(Range)(const   Grammar     grammar,   const   LRTable     table,     Range input)
     if ( isSymbolInput!Range )
 {

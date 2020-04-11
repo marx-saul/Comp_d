@@ -7,13 +7,20 @@ import std.conv: to;
 
 // definition of grammar
 alias grammar = defineGrammar!(`
-    Expr:
-        Expr Atom,
-        Atom
+    LambdaExpr:
+        lam Vars dot LambdaExpr,
+        Apply,
+    ;
+    Apply:
+        Apply Atom,
+        Atom,
     ;
     Atom:
-        lam var dot Expr,
-        lPar Expr rPar,
+        var,
+        lPar LabmdaExpr rPar,
+    ;
+    Vars:
+        Vars var,
         var
     ;
 `);

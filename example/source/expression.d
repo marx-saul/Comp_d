@@ -31,7 +31,7 @@ static const table_info = SLRtableInfo(grammar.grammar_info);
 // you can make a syntax tree using left and right
 class Node {
     Symbol symbol;
-    Tree[] children;
+    Node[] children;
     size_t rule;
     int value;
     this(Symbol s, int v) { value=v, symbol=s; }
