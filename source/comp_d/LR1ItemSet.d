@@ -11,7 +11,7 @@ import std.stdio: writeln;
 alias LR1Item = Tuple!(size_t, "num", size_t, "index", Symbol, "lookahead");
 
 // dictionary-order of LR1Item
-pure bool ItemLess(LR1Item a, LR1Item b) {
+pure @nogc @safe bool ItemLess(LR1Item a, LR1Item b) {
     return a.num < b.num || (a.num == b.num && a.index < b.index) || (a.num == b.num && a.index == b.index && a.lookahead < b.lookahead);
 }
 

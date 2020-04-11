@@ -115,7 +115,7 @@ unittest {
 */
 
 // replace item_set by its closure
-package void closure(const GrammarInfo grammar_info, LR0ItemSet item_set) {
+package pure void closure(const GrammarInfo grammar_info, LR0ItemSet item_set) {
     auto grammar = grammar_info.grammar;
     
     // first collect B such that [A -> s.Bt] in item_set to non_kernel_symbols
@@ -148,7 +148,7 @@ package void closure(const GrammarInfo grammar_info, LR0ItemSet item_set) {
     }
 }
 
-package LR0ItemSet _goto(const GrammarInfo grammar_info, inout LR0ItemSet item_set, inout Symbol symbol) {
+package pure LR0ItemSet _goto(const GrammarInfo grammar_info, inout LR0ItemSet item_set, inout Symbol symbol) {
     auto result = new LR0ItemSet();
     // goto(item_set, symbol) is defined to be the closure of all items [A -> sX.t]
     // such that X = symbol and [A -> s.Xt] is in item_set.
@@ -165,7 +165,7 @@ package LR0ItemSet _goto(const GrammarInfo grammar_info, inout LR0ItemSet item_s
 // grammar_info.grammar is supposed to be augmented when passed to this function.
 // Then grammar_info.grammar[$-1] is [S' -> S]
 // and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
-package LR0ItemSet[] canonicalLR0Collection(const GrammarInfo grammar_info) {
+package pure LR0ItemSet[] canonicalLR0Collection(const GrammarInfo grammar_info) {
     auto item_set_0 = new LR0ItemSet(LR0Item(grammar_info.grammar.length-1,0));
     grammar_info.closure( item_set_0 );
     auto result = new LR0ItemSetSet (item_set_0);
@@ -203,11 +203,11 @@ package LR0ItemSet[] canonicalLR0Collection(const GrammarInfo grammar_info) {
 // Then grammar_info.grammar[$-1] is [S' -> S]
 // and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
 // This considers the conflict.
-LRTableInfo SLRtableInfo(inout const GrammarInfo grammar_info) {
+pure LRTableInfo SLRtableInfo(inout const GrammarInfo grammar_info) {
     return SLRtableInfo(grammar_info, canonicalLR0Collection(grammar_info));
 }
 
-private LRTableInfo SLRtableInfo(const GrammarInfo grammar_info, const LR0ItemSet[] collection) {
+private pure LRTableInfo SLRtableInfo(const GrammarInfo grammar_info, const LR0ItemSet[] collection) {
     auto result = new LRTableInfo(collection.length, grammar_info.max_symbol_num);
     auto grammar = grammar_info.grammar;
     
@@ -228,7 +228,17 @@ private LRTableInfo SLRtableInfo(const GrammarInfo grammar_info, const LR0ItemSe
                 auto item_set2 = _goto(grammar_info, item_set, sym);
                 if (item_set2.cardinal == 0) continue;
                 
-                auto j = collection.countUntil(_goto(grammar_info, item_set, sym));
+                //countUntil is impure
+                //auto j = collection.countUntil(_goto(grammar_info, item_set, sym));
+                size_t j;
+                auto goto_item_set = _goto(grammar_info, item_set, sym);
+                foreach (j_index, j_item_set; collection) {
+                    if (j_item_set.opEquals(goto_item_set)) {
+                        j = j_index;
+                        break;
+                    }
+                }
+                
                 // [i, sym] = goto j
                 if (sym in grammar_info.nonterminals) result.add( LREntry(Action.goto_, j), i, sym );   // As goto is empty if . is at the end
                 else                                  result.add( LREntry(Action.shift, j), i, sym );

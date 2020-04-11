@@ -10,7 +10,7 @@ import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln, write;
 
 alias ItemGroupSet = AATree!(LR0Item, ItemLess, Set!Symbol);
-bool ItemLess(LR0Item a, LR0Item b) {
+pure bool ItemLess(LR0Item a, LR0Item b) {
     return (a.index < b.index) || (a.index == b.index && a.num < b.num);
 }
 
@@ -106,7 +106,7 @@ unittest {
     writeln("## WeakMinLR unittest 1");
 }
 
-bool isSameState(ItemGroupSet a, ItemGroupSet b) {
+pure bool isSameState(ItemGroupSet a, ItemGroupSet b) {
     auto a_core = a.keys, b_core = b.keys;
     
     // core equality check
@@ -132,7 +132,7 @@ bool isSameState(ItemGroupSet a, ItemGroupSet b) {
   This is the ground that goto propagation can correctly modify all the gotos.
  **********************/
 // check whether they have the same core and weakly compatible
-package bool isWeaklyCompatible(const ItemGroupSet a, const ItemGroupSet b) {
+package pure bool isWeaklyCompatible(const ItemGroupSet a, const ItemGroupSet b) {
     auto a_core = a.keys, b_core = b.keys;
     
     // core equality check
@@ -156,7 +156,7 @@ package bool isWeaklyCompatible(const ItemGroupSet a, const ItemGroupSet b) {
     return true;
 }
 
-package void closure(const GrammarInfo grammar_info, ItemGroupSet item_group_set) {
+package pure void closure(const GrammarInfo grammar_info, ItemGroupSet item_group_set) {
     auto grammar = grammar_info.grammar;
     
     while (true) {
@@ -196,7 +196,7 @@ package void closure(const GrammarInfo grammar_info, ItemGroupSet item_group_set
     }
 }
 
-package ItemGroupSet _goto(const GrammarInfo grammar_info, inout ItemGroupSet item_group_set, inout Symbol symbol) {
+package pure ItemGroupSet _goto(const GrammarInfo grammar_info, inout ItemGroupSet item_group_set, inout Symbol symbol) {
     auto result = new ItemGroupSet();
     // goto(item_set, symbol) is defined to be the closure of all items [A -> sX.t]
     // such that X = symbol and [A -> s.Xt] is in item_set.
@@ -211,7 +211,7 @@ package ItemGroupSet _goto(const GrammarInfo grammar_info, inout ItemGroupSet it
     return result;
 }
 
-LRTableInfo weakMinimalLRtableInfo(const GrammarInfo grammar_info) {
+pure LRTableInfo weakMinimalLRtableInfo(const GrammarInfo grammar_info) {
     auto grammar = grammar_info.grammar;
     LRTableInfo result = new LRTableInfo(1, grammar_info.max_symbol_num);
     
@@ -239,8 +239,17 @@ LRTableInfo weakMinimalLRtableInfo(const GrammarInfo grammar_info) {
             
             ////////////////////////////
             // a state already appeared
-            auto index1 = countUntil!(x => isSameState(x, item_set))(state_list);
-            if (index1 != -1) {
+            // countUnitl is impure
+            //auto index1 = countUntil!(x => isSameState(x, item_set))(state_list);
+            size_t index1 = state_list.length;
+            foreach (i, x; state_list) {
+                if (isSameState(x, item_set)) {
+                    index1 = i;
+                    break;
+                }
+            }
+            
+            if (index1 != state_list.length) {
                 goto_of[symbol] ~= index1;
                 // shift and goto
                 if (symbol in grammar_info.terminals) { result.add( LREntry(Action.shift, index1), k, symbol ); }
@@ -252,11 +261,18 @@ LRTableInfo weakMinimalLRtableInfo(const GrammarInfo grammar_info) {
             
             /////////////////////////////////////
             // check whether it is weakly compatible with previous one
-            auto index2 = countUntil!(i => isWeaklyCompatible(state_list[i], item_set))(goto_of[symbol]);   // the index in goto_of
+            //auto index2 = countUntil!(ind => isWeaklyCompatible(state_list[ind], item_set))(goto_of[symbol]);   // the index in goto_of
+            size_t index2 = goto_of[symbol].length;
+            foreach (i, ind; goto_of[symbol]) {
+                if (isWeaklyCompatible(state_list[ind], item_set)) {
+                    index2 = i;
+                    break;
+                }
+            }
             
             /////////////
             // new state
-            if (index2 == -1) {
+            if (index2 == goto_of[symbol].length) {
                 state_list ~= item_set;
                 result.addState();
                 goto_of[symbol] ~= state_list.length-1;

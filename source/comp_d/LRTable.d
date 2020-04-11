@@ -31,7 +31,7 @@ class LRTable {
     
     public LREntry[][] table;
     
-    this(State state_num, Symbol msyn) {
+    pure this(State state_num, Symbol msyn) {
         this.max_symbol_number = msyn;
         // reserve
         table.length = state_num;
@@ -40,13 +40,13 @@ class LRTable {
             table[state].length = msyn+2;    // consider end_of_file_ = -2
     }
     
-    package void addState() {
+    package pure void addState() {
         table.length += 1;
         table[$-1].length = max_symbol_number+2;
     }
     
     // return the index of symbol accessing index
-    private size_t get_index(Symbol symbol) inout const {
+    private pure size_t get_index(Symbol symbol) inout const {
         size_t access = void;
         if      (symbol == -2) access = 0;
         else if ( !( (0 <= symbol) && (symbol <= max_symbol_number) ) )
@@ -56,12 +56,12 @@ class LRTable {
     }
     
     // table[state, symbol]
-    public LREntry opIndex(State state, Symbol symbol) inout const {
+    public pure LREntry opIndex(State state, Symbol symbol) inout const {
         auto access = get_index(symbol);
         return table[state][access];
     }
     // table[state, symbol]
-    public LREntry opIndexAssign(LREntry value, State state, Symbol symbol) {
+    public pure LREntry opIndexAssign(LREntry value, State state, Symbol symbol) {
         auto access = get_index(symbol);
         return table[state][access] = value;
     }
@@ -78,23 +78,23 @@ class LRTableInfo {
     //public  bool is_conflict;
     
     private EntryIndexSet conflict_index_set;
-    package bool is_conflict() @property inout const {
+    package pure bool is_conflict() @property inout const {
         return conflict_index_set.cardinal > 0;
     }
-    package bool is_conflicting(State state, Symbol symbol) inout const {
+    package pure bool is_conflicting(State state, Symbol symbol) inout const {
         return EntryIndex(state, symbol) in conflict_index_set;
     }
     
-    package inout(EntryIndex)[] conflictings() @property inout const {
+    package pure inout(EntryIndex)[] conflictings() @property inout const {
         return conflict_index_set.array;
     }
     
     private State state_number;
-    package State state_num() @property inout const {
+    package pure State state_num() @property inout const {
         return state_number;
     }
     
-    this(State state_num, Symbol msyn) {
+    pure this(State state_num, Symbol msyn) {
         // init
         table = new LRTable(state_num, msyn);
         // reserve
@@ -107,7 +107,7 @@ class LRTableInfo {
         conflict_index_set = new EntryIndexSet();
     }
     
-    package void addState() {
+    package pure void addState() {
         table.addState();
         set_data.length += 1;
         set_data[$-1].length = table.max_symbol_number+2;
@@ -116,14 +116,14 @@ class LRTableInfo {
     
     // return the set
     // table[state, symbol]
-    public LREntrySet opIndex(State state, Symbol symbol) inout const {
+    public pure LREntrySet opIndex(State state, Symbol symbol) inout const {
         auto access = table.get_index(symbol);
         return cast(LREntrySet) set_data[state][access];
     }
     
     // determine the value
     // table[state, symbol] = Entry
-    public void opIndexAssign(LREntry value, State state, Symbol symbol) {
+    public pure void opIndexAssign(LREntry value, State state, Symbol symbol) {
         auto access = table.get_index(symbol);
         // determine the entry
         table[state, symbol] = value;
@@ -137,7 +137,7 @@ class LRTableInfo {
      */
     
     // add entry to the table[state, symbol]
-    package void add(LREntry value, State state, Symbol symbol) {
+    package pure void add(LREntry value, State state, Symbol symbol) {
         auto access = table.get_index(symbol);
         set_data[state][access].add(value);
         // conflicted

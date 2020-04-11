@@ -49,28 +49,28 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
     }
     private Node* root;
     
-    this(K[] args...) {
+    pure this(K[] args...) {
         insert(args);
     }
     
     // returns the keys of the elements in the ascending order
-    public inout(K)[] keys() @property inout const {
+    public pure inout(K)[] keys() @property inout const {
         return array_(cast(inout(Node*)) root);
     }
     deprecated("Use keys() instead.") public inout(K)[] array() @property inout const {
         return array_(cast(inout(Node*)) root);
     }
-    private inout(K)[] array_(inout(Node*) node) inout const {
+    private pure inout(K)[] array_(inout(Node*) node) inout const {
         if (node == null) return [];
         return array_(node.left) ~ [node.key] ~ array_(node.right);
     }
     // array.length
     private size_t cardinal_;
-    public size_t cardinal() @property inout const {
+    public pure @nogc @safe size_t cardinal() @property inout const {
         return cardinal_;
     }
    
-    public bool empty() @property inout {
+    public pure @nogc @safe bool empty() @property inout {
         return root == null;
     }
     /*
@@ -86,33 +86,33 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
     }
     */
     
-    public bool hasKey(inout K key) inout {
+    public pure bool hasKey(inout K key) inout {
         return hasKey(key, cast(Node*) root) != null;
     }
-    private Node* hasKey(inout K key, Node* node) inout {
+    private pure Node* hasKey(inout K key, Node* node) inout {
         while (true) {
             // not found
             if (node == null) return null;
-            // found
-            if (node.key == key) return node;
             
             // go left
             if      (less(key, node.key)) node = node.left;
             // go right
             else if (less(node.key, key)) node = node.right;
+            // found
+            else return node;
         }
     }
     
-    public ref V getValue(inout K key) inout const {
+    public pure ref V getValue(inout K key) inout const {
         return hasKey(key, cast(Node*) root).value;
     }
     
     // [] overload
-    public ref V opIndex(K index) inout const {
+    public pure ref V opIndex(K index) inout const {
         return getValue(index);
     }
     // aatree[index] = s
-    public V opIndexAssign(V s, K index) {
+    public pure V opIndexAssign(V s, K index) {
         root = insert(index, root, s);
         return s;
     }
@@ -121,7 +121,7 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
     //   |  |          |       =>        |      |    |
     //   v  v          v                 v      v    v
     //   a  b        right               a      b  right
-    private Node* skew(Node* node) inout {
+    private pure Node* skew(Node* node) inout {
         if (node == null)           return null;
         else if (node.left == null) return node;
         else if (node.left.level == node.level) {
@@ -140,7 +140,7 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
     //   |       |                |    |
     //   v       v                v    v
     //   a       b                a    b
-    private Node* split(Node* node) inout {
+    private pure Node* split(Node* node) inout {
         if      (node == null)                                   return null;
         else if (node.right == null || node.right.right == null) return node;
         else if (node.level == node.right.right.level) {
@@ -154,11 +154,11 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
     }
     /////////////
     // insert
-    public void insert(K[] keys...) {
+    public pure void insert(K[] keys...) {
         foreach (key; keys)
             root = insert(key, root);
     }
-    private Node* insert(K key, Node* node, V value = V.init) {
+    private pure Node* insert(K key, Node* node, V value = V.init) {
         if      (node == null) {
             auto new_node = new Node();
             new_node.key = key, new_node.level = 1, new_node.value = value; 
@@ -181,11 +181,11 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
     
     /////////////
     // remove
-    public void remove(K[] keys...) {
+    public pure void remove(K[] keys...) {
         foreach (key; keys)
             root = remove(key, root);
     }
-    private Node* remove(K key, Node* node) {
+    private pure Node* remove(K key, Node* node) {
         if (node == null)
             return null;
         else if (less(node.key, key))
@@ -219,7 +219,7 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
         return node;
     }
     
-    private Node* decrease_level(Node* node) {
+    private pure Node* decrease_level(Node* node) {
         if (node == null) return null;
         auto normalize
            = min(
@@ -235,14 +235,14 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
         return node;
     }
     
-    private Node* predecessor(Node* node) {
+    private pure Node* predecessor(Node* node) {
         node = node.left;
         while (node.right)
             node = node.right;
         return node;
     }
     
-    private Node* successor(Node* node) {
+    private pure Node* successor(Node* node) {
         node = node.right;
         while (node.left)
             node = node.left;

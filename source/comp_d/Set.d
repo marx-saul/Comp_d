@@ -58,39 +58,39 @@ class Set(T, alias less = (a,b)=>a<b)
 {
     private AATree!(T, less, bool) aat;
     // initialize
-    public this(T[] args...) {
+    pure this(T[] args...) {
         aat = new AATree!(T, less)(args);
     }
     
-    public @property bool empty() {
+    public pure @property bool empty() {
         return aat.empty;
     }
     
     // array, cardinal
-    public inout(T)[] array() @property inout const {
+    public pure inout(T)[] array() @property inout const {
         return aat.keys;
     }
-    public size_t cardinal() @property inout {
+    public pure size_t cardinal() @property inout {
         return aat.cardinal;
     }
     
-    public void add(T[] args...) {
+    public pure void add(T[] args...) {
         aat.insert(args);
     }
-    public void remove(T[] args...) {
+    public pure void remove(T[] args...) {
         aat.remove(args);
     }
     
     
     // "in" overload (element)
-    public bool opBinaryRight(string op)(inout T elem) inout
+    public pure bool opBinaryRight(string op)(inout T elem) inout
         if (op == "in")
     {
         return aat.hasKey(elem);
     }
     
     // "in" overload (containment)
-    public bool opBinary(string op)(inout Set!(T, less) rhs) inout
+    public pure bool opBinary(string op)(inout Set!(T, less) rhs) inout
         if (op == "in")
     {
         foreach(elem; aat.keys) {
@@ -100,14 +100,14 @@ class Set(T, alias less = (a,b)=>a<b)
     }
     
     // "==" overload
-    override public bool opEquals(Object o) {
+    override public pure bool opEquals(Object o) const {
         auto a = cast(Set!(T, less)) o;
         return this in a && a in this;
     }
     
     // operator "+" overload
     // cup
-    public Set!(T, less) opBinary(string op)(inout Set!(T, less) set2) inout
+    public pure Set!(T, less) opBinary(string op)(inout Set!(T, less) set2) inout
         if (op == "+")
     {
         auto result = new Set!(T, less)();
@@ -118,7 +118,7 @@ class Set(T, alias less = (a,b)=>a<b)
     
     // operator "&" overload
     // cap
-    public Set!(T, less) opBinary(string op)(inout Set!(T, less) set2) inout
+    public pure Set!(T, less) opBinary(string op)(inout Set!(T, less) set2) inout
         if (op == "&")
     {
         auto result = new Set!(T, less)();
@@ -128,7 +128,7 @@ class Set(T, alias less = (a,b)=>a<b)
     
     // operator "-" overload
     // subtract
-    public Set!(T, less) opBinary(string op)(inout Set!(T, less) set2) inout
+    public pure Set!(T, less) opBinary(string op)(inout Set!(T, less) set2) inout
         if (op == "-")
     {
         auto result = new Set!(T, less)();
@@ -137,7 +137,7 @@ class Set(T, alias less = (a,b)=>a<b)
         return result;
     }
     
-    public Set!(T, less) opOpAssign(string op)(inout Set!(T, less) set2) {
+    public pure Set!(T, less) opOpAssign(string op)(inout Set!(T, less) set2) {
         // operator "+=" overload
         static if (op == "+") {
             foreach (t; set2.aat.keys) this.add(t);

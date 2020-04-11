@@ -11,7 +11,7 @@ import std.algorithm, std.algorithm.comparison;
 import std.stdio: writeln, write;
 
 alias FEntry = Tuple!(Symbol, size_t, size_t);
-bool FEntryLess(FEntry a, FEntry b) {
+pure bool FEntryLess(FEntry a, FEntry b) {
     return (a[0] < b[0]) || (a[0] == b[0] && a[1] < b[1]) || (a[0] == b[0] && a[1] == b[1] && a[2] < b[2]);
 }
 alias FSet = AATree!(FEntry, FEntryLess, bool);
@@ -88,7 +88,7 @@ unittest {
 }
 
 // check whether they have the same core and strongly compatible
-package bool isStronglyCompatible(const ItemGroupSet a, const ItemGroupSet b, const GrammarInfo grammar_info, FSet fset) {
+package pure bool isStronglyCompatible(const ItemGroupSet a, const ItemGroupSet b, const GrammarInfo grammar_info, FSet fset) {
     auto a_core = a.keys, b_core = b.keys;
     
     // core equality check
@@ -139,13 +139,13 @@ package bool isStronglyCompatible(const ItemGroupSet a, const ItemGroupSet b, co
     return true;
 }
 
-private bool check(size_t num1, size_t index1, size_t num2, size_t index2, const GrammarInfo grammar_info, FSet fset) {
+private pure bool check(size_t num1, size_t index1, size_t num2, size_t index2, const GrammarInfo grammar_info, FSet fset) {
     if (num1 == num2 && index1 == index2) return false;
     
     auto grammar = grammar_info.grammar;
     
     auto str1 = grammar[num1].rhs[index1 .. $], str2 = grammar[num2].rhs[index2 .. $];
-    writeln("str1 = ", str1.map!(i => grammar_info.nameOf(i)), "\n", "str2 = ", str2.map!(i => grammar_info.nameOf(i)));
+    //writeln("str1 = ", str1.map!(i => grammar_info.nameOf(i)), "\n", "str2 = ", str2.map!(i => grammar_info.nameOf(i)));
     if (equal(str1, str2)) return true;
     
     // str1[s] does not generate empty, while str1[s+1], ... str1[$-1] does
@@ -233,7 +233,7 @@ private bool check(size_t num1, size_t index1, size_t num2, size_t index2, const
     return false;
 }
 
-LRTableInfo strongMinimalLRtableInfo(const GrammarInfo grammar_info) {
+pure LRTableInfo strongMinimalLRtableInfo(const GrammarInfo grammar_info) {
     auto grammar = grammar_info.grammar;
     LRTableInfo result = new LRTableInfo(1, grammar_info.max_symbol_num);
     
@@ -264,8 +264,17 @@ LRTableInfo strongMinimalLRtableInfo(const GrammarInfo grammar_info) {
             
             ////////////////////////////
             // a state already appeared
-            auto index1 = countUntil!(x => isSameState(x, item_set))(state_list);
-            if (index1 != -1) {
+            // countUnitl is impure
+            //auto index1 = countUntil!(x => isSameState(x, item_set))(state_list);
+            size_t index1 = state_list.length;
+            foreach (i, x; state_list) {
+                if (isSameState(x, item_set)) {
+                    index1 = i;
+                    break;
+                }
+            }
+            
+            if (index1 != state_list.length) {
                 goto_of[symbol] ~= index1;
                 // shift and goto
                 if (symbol in grammar_info.terminals) { result.add( LREntry(Action.shift, index1), k, symbol ); }
@@ -277,11 +286,18 @@ LRTableInfo strongMinimalLRtableInfo(const GrammarInfo grammar_info) {
             
             /////////////////////////////////////
             // check whether it is strongly compatible with previous one
-            auto index2 = countUntil!(i => isStronglyCompatible(state_list[i], item_set, grammar_info, fset))(goto_of[symbol]);   // the index in goto_of
+            //auto index2 = countUntil!(ind => isStronglyCompatible(state_list[ind], item_set, grammar_info, fset))(goto_of[symbol]);   // the index in goto_of
+            size_t index2 = goto_of[symbol].length;
+            foreach (i, ind; goto_of[symbol]) {
+                if (isStronglyCompatible(state_list[ind], item_set, grammar_info, fset)) {
+                    index2 = i;
+                    break;
+                }
+            }
             
             /////////////
             // new state
-            if (index2 == -1) {
+            if (index2 == goto_of[symbol].length) {
                 state_list ~= item_set;
                 result.addState();
                 goto_of[symbol] ~= state_list.length-1;

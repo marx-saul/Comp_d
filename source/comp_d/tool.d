@@ -179,31 +179,31 @@ class GrammarInfo {
         return countUntil(name, symbol_name_dictionary);
     }*/
     private string[] rule_label;
-    public  string labelOf(inout const size_t index) inout {
+    public pure string labelOf(inout const size_t index) inout {
         if (index >= rule_label.length) return to!string(index);
         else if (rule_label[index].length > 0) return rule_label[index];
         else return to!string(index);
     }
     private Symbol start_symbol;
-    public  Symbol start_sym() @property inout {
+    public pure Symbol start_sym() @property inout {
         return start_symbol;
     }
     private Symbol max_symbol_number;
-    public  Symbol max_symbol_num() @property inout {
+    public pure Symbol max_symbol_num() @property inout {
         return max_symbol_number;
     }
     private SymbolSet appearing_symbols;
-    public  immutable(SymbolSet) appearings() @property inout {
+    public pure immutable(SymbolSet) appearings() @property inout {
         return cast(immutable SymbolSet) appearing_symbols;
     }
     private Symbol[]  appearing_symbols_array;
     private SymbolSet nonterminal_symbols;
-    public  immutable(SymbolSet) nonterminals() @property inout {
+    public pure immutable(SymbolSet) nonterminals() @property inout {
         return cast(immutable SymbolSet) nonterminal_symbols;
     }
     private Symbol[]  nonterminal_symbols_array;
     private SymbolSet terminal_symbols;
-    public  immutable(SymbolSet) terminals() @property inout {
+    public pure immutable(SymbolSet) terminals() @property inout {
         return cast(immutable SymbolSet) terminal_symbols;
     }
     private Symbol[]  terminal_symbols_array;
@@ -249,17 +249,17 @@ class GrammarInfo {
         
     }
     
-    private Symbol maxSymbolNumber(Rule rule) inout {
+    private pure Symbol maxSymbolNumber(Rule rule) inout {
         return max( rule.lhs, rule.rhs.reduce!((a,b) => max(a,b)) );
     }
     
     // for symbol set
-    public SymbolSet symbolSet(Symbol[] args...) inout {
+    public pure SymbolSet symbolSet(Symbol[] args...) inout {
         return new SymbolSet(max_symbol_number, args);
     }
     
     // nonterminal, appearing
-    private SymbolSet appearingSymbolSet(Grammar grammar) {
+    private pure SymbolSet appearingSymbolSet(Grammar grammar) {
         auto result = symbolSet();
         foreach (rule; grammar) {
             result.add(rule.lhs);
@@ -273,7 +273,7 @@ class GrammarInfo {
         return result;
     }
     
-    private SymbolSet nonterminalSet(Grammar grammar) {
+    private pure SymbolSet nonterminalSet(Grammar grammar) {
         auto result = symbolSet();
         foreach (rule; grammar)
             result.add(rule.lhs);
@@ -281,7 +281,7 @@ class GrammarInfo {
     }
     // ///////////////////////////////////////////////////////////////////////////////////////////
     // first set
-    private SymbolSet[] calcFirstTable(Grammar grammar, Symbol max_symbol_number, const SymbolSet appearing_symbols, const SymbolSet nonterminal_symbols) {
+    private pure SymbolSet[] calcFirstTable(Grammar grammar, Symbol max_symbol_number, const SymbolSet appearing_symbols, const SymbolSet nonterminal_symbols) {
         auto result = new SymbolSet[max_symbol_number+1];
         foreach (i; 0 .. max_symbol_number+1) result[i] = symbolSet();
         
@@ -336,13 +336,13 @@ class GrammarInfo {
     }
     
     // FIRST(Y)
-    private SymbolSet first(inout Symbol symbol) inout {
+    private pure SymbolSet first(inout Symbol symbol) inout {
         if (symbol.among!(empty_, end_of_file_, virtual)) return symbolSet(symbol);
         else return cast(SymbolSet) first_table[symbol];
     }
     
     // FIRST(Y0 Y1 ... Yn)
-    public SymbolSet first(inout(Symbol)[] symbols) inout const {
+    public pure SymbolSet first(inout(Symbol)[] symbols) inout const {
         auto result = symbolSet();
         if (symbols.length == 0) {
             result.add(empty_);
@@ -365,7 +365,7 @@ class GrammarInfo {
     }
     // ///////////////////////////////////////////////////////////////////////////////////////////
     // follow set
-    public SymbolSet[] calcFollowTable(Grammar grammar, const SymbolSet nonterminals) {
+    public pure SymbolSet[] calcFollowTable(Grammar grammar, const SymbolSet nonterminals) {
         auto result = new SymbolSet[max_symbol_number+1];
         foreach (i; 0 .. max_symbol_number+1) result[i] = symbolSet();
         // add end_of_file to FOLLOW(start_symbol)
@@ -400,7 +400,7 @@ class GrammarInfo {
     }
     
     // FOLLOW(A)
-    public SymbolSet follow(Symbol symbol) inout {
+    public pure SymbolSet follow(Symbol symbol) inout {
         if (symbol.among!(empty_, end_of_file_, virtual)) assert(0, "follow cannot take parameter, " ~ to!string(symbol));
         else return cast(SymbolSet) follow_table[symbol];
     }
@@ -454,7 +454,7 @@ package class SymbolSet {
     private bool[] data;
     private Symbol max_symbol_number;
     
-    public @property Symbol[] array() inout {
+    public pure @property Symbol[] array() inout {
         Symbol[] result;
         foreach (i, flag; data) {
             if (flag) result ~= cast(Symbol)i-special_tokens;
@@ -462,23 +462,23 @@ package class SymbolSet {
         return result;
     }
     private size_t cardinal_;
-    public @property size_t cardinal() inout {
+    public pure @property size_t cardinal() inout {
         return cardinal_;
         /+ulong result;
         foreach(flag; data) if (flag) ++result;
         return result;+/
     }
     
-    this(Symbol msn, Symbol[] args) {
+    pure this(Symbol msn, Symbol[] args) {
         this(msn);
         add(args);
     }
-    this(Symbol msn) {
+    pure this(Symbol msn) {
         Symbol max_symbol_number = msn;
         data.length = max_symbol_number + special_tokens+1;
     }
     
-    public void add(Symbol[] args...) {
+    public pure void add(Symbol[] args...) {
         foreach (arg; args) {
             if (0 <= arg+special_tokens && arg+special_tokens <= data.length) {
                 if (!data[arg+special_tokens]) {
@@ -490,7 +490,7 @@ package class SymbolSet {
                 assert(0, "\033[1m\033[32mSymbolSet.add got a parameter out of range.\033[0m");
         }
     }
-    public void remove(Symbol[] args...) {
+    public pure void remove(Symbol[] args...) {
         
         foreach (arg; args) {
             if (0 <= arg+special_tokens && arg+special_tokens <= data.length) {
@@ -508,14 +508,14 @@ package class SymbolSet {
     // in the operator overloadings, it is assumed that max_symbol_number are equal.
     
     // "in" overload (element)
-    public bool opBinaryRight(string op)(inout Symbol elem) inout
+    public pure bool opBinaryRight(string op)(inout Symbol elem) inout
         if (op == "in")
     {
         return data[elem+special_tokens];
     }
     
     // "in" overload (containment)
-    public bool opBinary(string op)(inout SymbolSet rhs) inout
+    public pure bool opBinary(string op)(inout SymbolSet rhs) inout
         if (op == "in")
     {
         foreach (i, flag; data) {
@@ -525,13 +525,13 @@ package class SymbolSet {
     }
     
     // "==" overload
-    override public bool opEquals(Object o) {
+    override public pure bool opEquals(Object o) {
         auto rhs = cast(SymbolSet) o;
         return (this in rhs) && (rhs in this);
     }
     
     // "+", "-" overload: cup, sub
-    public SymbolSet opBinary(string op)(inout SymbolSet rhs) inout
+    public pure SymbolSet opBinary(string op)(inout SymbolSet rhs) inout
         if (op == "+" || op == "-")
     {
         auto result = new SymbolSet(max_symbol_number);
@@ -541,7 +541,7 @@ package class SymbolSet {
         return result;
     }
     
-    public SymbolSet opOpAssign(string op)(inout SymbolSet rhs) {
+    public pure SymbolSet opOpAssign(string op)(inout SymbolSet rhs) {
         // operator "+=" overload
         static if (op == "+" || op == "-") {
             foreach (i, flag; rhs.data) if (flag) this.data[i] = (op == "+");
@@ -553,7 +553,7 @@ package class SymbolSet {
     
     // operator "&" overload
     // cap
-    public SymbolSet opBinary(string op)(inout SymbolSet set2) inout
+    public pure SymbolSet opBinary(string op)(inout SymbolSet set2) inout
         if (op == "&")
     {
         auto result = new SymbolSet(max_symbol_number);

@@ -29,13 +29,16 @@ unittest{
 }
 
 alias LookAhead = Tuple!(size_t, "i", size_t, "j", Symbol, "symbol");
-alias LookAheadSet = Set!(LookAhead, (a,b) => a.i < b.i || (a.i == b.i && a.j < b.j) || (a.i == b.i && a.j == b.j && a.symbol < b.symbol));
+private pure @nogc @safe bool lookAheadLess(LookAhead a, LookAhead b) {
+    return a.i < b.i || (a.i == b.i && a.j < b.j) || (a.i == b.i && a.j == b.j && a.symbol < b.symbol);
+}
+alias LookAheadSet = Set!(LookAhead, lookAheadLess);
 
 // grammar_info.grammar is supposed to be augmented when passed to this function.
 // Then grammar_info.grammar[$-1] is [S' -> S]
 // and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
 // This considers the conflict.
-private LookAheadSet Propagates(const GrammarInfo grammar_info, const LR0ItemSet[] collection, const LRTableInfo table) {
+private pure LookAheadSet Propagates(const GrammarInfo grammar_info, const LR0ItemSet[] collection, const LRTableInfo table) {
     auto grammar = grammar_info.grammar;
     
     // kernel item is [S' -> .S] or an item whose dot is not at the start.
@@ -117,11 +120,11 @@ private LookAheadSet Propagates(const GrammarInfo grammar_info, const LR0ItemSet
 // Then grammar_info.grammar[$-1] is [S' -> S]
 // and S' = grammar_info.max_symbol_num is supposed to be the grammar_info.max_symbol_number.
 // This considers the conflict.
-LRTableInfo LALRtableInfo(const GrammarInfo grammar_info) {
+pure LRTableInfo LALRtableInfo(const GrammarInfo grammar_info) {
     return LALRtableInfo(grammar_info, canonicalLR0Collection(grammar_info));
 }
 
-private LRTableInfo LALRtableInfo(const GrammarInfo grammar_info, const LR0ItemSet[] collection) {
+private pure LRTableInfo LALRtableInfo(const GrammarInfo grammar_info, const LR0ItemSet[] collection) {
     auto result = SLRtableInfo(grammar_info, collection);
     auto lookaheads = Propagates(grammar_info, collection, result);
     auto lookaheads_array = lookaheads.array;
