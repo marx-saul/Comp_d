@@ -7,6 +7,6 @@
 	"license": "BSL-1.0",
 	"name": "example",
 	"dependencies": {
-		"comp_d": "~>0.6.2",
+		"comp_d": "~>0.6.3",
 	},
 }

@@ -20,8 +20,17 @@ void main()
     
     
     import lambda;
-    showSLRtableInfo(lambda.grammar.grammar_info);
-    assert ( isLambda([lam, var, dot, lam, var, dot, var]) );
+    import std.range: iota;
+    {
+        auto tree = lambdaTree("(\\x y.x y) (y y)");
+        //normal_reduce(tree);
+        //writeln();
+        //showLambdaTree(tree); writeln("\n-----");
+    }
+    {
+        auto tree = lambdaTree("(\\x y z . x z (y z)) (\\x y.x) (\\x y.x)");    // SKK
+        iota(10).each!((x) {showLambdaTree(tree, false); writeln("\n-----"); normal_reduce(tree);});
+    }
 }
 
 /+ // You can copy&paste these codes and remove the comment out to see the static parsing.
