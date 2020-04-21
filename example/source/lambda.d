@@ -158,7 +158,7 @@ Tree lambdaTree(Token[] tokens) {
                 case "lam":
                     auto lambda_tree = cast(LambdaTree) tree_stack[$-3];
                     lambda_tree.expr = tree_stack[$-1];
-                    
+                    /*
                     // An argument is bounded.
                     bool[string] args_appeared; // check if the same argument appeared
                     foreach (arg; lambda_tree.args) {
@@ -173,7 +173,7 @@ Tree lambdaTree(Token[] tokens) {
                         lambda_tree.bound_vars[var] = false;
                     foreach (var; lambda_tree.expr.free_vars. byKey) if (var !in args_appeared)
                         lambda_tree.free_vars[var] = false;
-                    
+                    */
                     tree_stack.length -= (4-1);
                     tree_stack[$-1] = lambda_tree;
                 break;
@@ -188,7 +188,7 @@ Tree lambdaTree(Token[] tokens) {
                     auto new_tree   = new ApplyTree;
                     new_tree.left = apply_tree,
                     new_tree.right = atom_tree;
-                    
+                    /*
                     // set variables
                     foreach (var; apply_tree.free_vars. byKey)
                         new_tree.free_vars[var]  = false;
@@ -198,7 +198,7 @@ Tree lambdaTree(Token[] tokens) {
                         new_tree.free_vars[var]  = false;
                     foreach (var; atom_tree. bound_vars.byKey)
                         new_tree.bound_vars[var] = false;
-                    
+                    */
                     tree_stack.length -= (2-1);
                     tree_stack[$-1] = new_tree;
                 break;
@@ -238,7 +238,7 @@ Tree lambdaTree(Token[] tokens) {
                 assert(0);
             }
         }
-        else if (result.action == Action.accept) return tree_stack[0];
+        else if (result.action == Action.accept) { set_FBvars(tree_stack[0]); return tree_stack[0]; }
         else if (result.action == Action.error)  { writeln("Syntax error"); return null; }
     }
     assert(0);
