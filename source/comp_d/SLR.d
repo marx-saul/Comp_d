@@ -260,7 +260,7 @@ private pure LRTableInfo SLRtableInfo(const GrammarInfo grammar_info, const LR0I
 }
 
 // When conflict occurs, one can use this function to see where the conflict occurs
-private void showSLRtableInfo(const GrammarInfo grammar_info, const LRTableInfo table_info) {
+void showSLRtableInfo(const GrammarInfo grammar_info, const LRTableInfo table_info) {
     auto grammar = grammar_info.grammar;
     auto collection = canonicalLR0Collection(grammar_info);
     // show the collection

@@ -1,6 +1,7 @@
 module comp_d.AST;
 
 import comp_d.data, comp_d.tool, comp_d.LRTable;
+import comp_d.parseTree : IsTreeType;
 
 import std.range, std.array;
 import std.algorithm, std.algorithm.comparison;
@@ -17,13 +18,6 @@ struct ASTRule {
     Symbol root;
     Symbol[] children;
 }
-
-//enum bool IsTokenType(T) = is(T == struct) && is(ReturnType!((T t) => t.symbol) == Symbol);
-enum bool IsTreeType(T) =
-    is(T == class) &&
-    is(ReturnType!((T t) => t.symbol)     == Symbol) &&
-    is(ReturnType!((T t) => t.children)   == T[])    &&
-    is(ReturnType!((T t) => t.rule)       == size_t);
 
 template getAST(Tree, alias const GrammarInfo grammar_info, alias const LRTableInfo table_info, alias const ASTRule[] ASTrules)
     if (IsTreeType!(Tree))

@@ -144,7 +144,7 @@ private pure LRTableInfo LALRtableInfo(const GrammarInfo grammar_info, const LR0
 }
 
 // When conflict occurs, one can use this function to see where the conflict occurs
-private void showLALRtableInfo(const GrammarInfo grammar_info, const LRTableInfo table_info) {
+void showLALRtableInfo(const GrammarInfo grammar_info, const LRTableInfo table_info) {
     auto grammar = grammar_info.grammar;
     auto collection = canonicalLR0Collection(grammar_info);
     // show the collection

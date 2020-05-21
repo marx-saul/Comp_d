@@ -38,6 +38,7 @@ template rule() {
 // Grammar
 alias Grammar = Rule[];
 
+/*
 deprecated template    grammar() {
     Grammar grammar(Args...)(Args rules) {
         static assert ( Args.length > 0, "\033[1m\033[32mThere must be at least 1 rule in grammar(...) .\033[0m" );
@@ -49,6 +50,7 @@ deprecated template    grammar() {
         return result;
     }
 }
+*/
 
 /*******************************/
 // for LR table (moved to LRTable.d)
