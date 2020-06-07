@@ -202,11 +202,13 @@ class AATree(K, alias less = (a,b) => a < b, V = bool)
                 auto R = successor(node);
                 node.right = remove(R.key, node.right);
                 node.key = R.key;
+                node.value = R.value;
             }
             else {
                 auto L = predecessor(node);
                 node.left = remove(L.key, node.left);
                 node.key = L.key;
+                node.value = L.value;
             }
         }
         // 
